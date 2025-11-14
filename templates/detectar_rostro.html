@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detección Facial</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .video-container {
+            background: white;
+            border-radius: 15px;
+            padding: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .video-container img {
+            width: 100%;
+            height: auto;
+            border-radius: 10px;
+            display: block;
+        }
+
+        .instructions {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .instructions h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+        }
+
+        .instruction-list {
+            list-style: none;
+            margin-bottom: 30px;
+        }
+
+        .instruction-list li {
+            padding: 15px 0;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            align-items: center;
+        }
+
+        .instruction-list li:last-child {
+            border-bottom: none;
+        }
+
+        .instruction-icon {
+            width: 30px;
+            height: 30px;
+            background: #667eea;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+            font-weight: bold;
+        }
+
+        .status-panel {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            margin-top: 20px;
+            backdrop-filter: blur(10px);
+            color: white;
+        }
+
+        .status-message {
+            font-size: 1.2em;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .indicator {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #ff4757;
+            margin-right: 10px;
+            animation: pulse 2s infinite;
+        }
+
+        .indicator.detected {
+            background: #2ed573;
+            animation: none;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .btn {
+            padding: 15px 30px;
+            border: none;
+            border-radius: 50px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-success {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #45a049;
+            transform: scale(1.05);
+        }
+
+        .btn-success:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-back {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-back:hover {
+            background: #5a6268;
+        }
+
+        .action-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Detección Facial</h1>
+            <p>Por favor, acérquese a la cámara para verificar su presencia</p>
+        </div>
+
+        <div class="content">
+            <div class="video-container">
+                <img src="{{ url_for('video_feed') }}" alt="Video Feed">
+            </div>
+
+            <div class="instructions">
+                <h2>Instrucciones</h2>
+                <ul class="instruction-list">
+                    <li>
+                        <div class="instruction-icon">1</div>
+                        <span>Colóquese frente a la cámara</span>
+                    </li>
+                    <li>
+                        <div class="instruction-icon">2</div>
+                        <span>Asegúrese de que su rostro sea visible</span>
+                    </li>
+                    <li>
+                        <div class="instruction-icon">3</div>
+                        <span>Mantenga una distancia adecuada (50-100 cm)</span>
+                    </li>
+                    <li>
+                        <div class="instruction-icon">4</div>
+                        <span>Espere a que se detecte su rostro automáticamente</span>
+                    </li>
+                </ul>
+
+                <div class="status-panel">
+                    <div class="status-message" id="statusMessage">
+                        Esperando detección de rostro...
+                    </div>
+                    <div class="status-indicator">
+                        <div class="indicator" id="statusIndicator"></div>
+                        <span id="statusText">No detectado</span>
+                    </div>
+                </div>
+
+                <div class="action-buttons">
+                    <button class="btn btn-back" onclick="goBack()">
+                        ← Volver
+                    </button>
+                    <button class="btn btn-success" id="continueBtn" onclick="continueToForm()" disabled>
+                        Continuar al Formulario →
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let faceDetected = false;
+        let checkInterval;
+
+        function checkFaceStatus() {
+            fetch('/api/face_status')
+                .then(response => response.json())
+                .then(data => {
+                    faceDetected = data.face_detected;
+                    
+                    const indicator = document.getElementById('statusIndicator');
+                    const statusText = document.getElementById('statusText');
+                    const statusMessage = document.getElementById('statusMessage');
+                    const continueBtn = document.getElementById('continueBtn');
+                    
+                    if (faceDetected) {
+                        indicator.classList.add('detected');
+                        statusText.textContent = 'Rostro Detectado';
+                        statusMessage.textContent = '✓ ¡Rostro detectado correctamente!';
+                        statusMessage.style.color = '#2ed573';
+                        continueBtn.disabled = false;
+                    } else {
+                        indicator.classList.remove('detected');
+                        statusText.textContent = 'No detectado';
+                        statusMessage.textContent = 'Esperando detección de rostro...';
+                        statusMessage.style.color = 'white';
+                        continueBtn.disabled = true;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error checking face status:', error);
+                });
+        }
+
+        function continueToForm() {
+            if (faceDetected) {
+                window.location.href = '/formulario';
+            } else {
+                alert('Por favor, espere a que se detecte su rostro.');
+            }
+        }
+
+        function goBack() {
+            window.location.href = '/registro';
+        }
+
+        // Verificar estado cada segundo
+        checkInterval = setInterval(checkFaceStatus, 1000);
+        
+        // Verificar inmediatamente al cargar
+        checkFaceStatus();
+
+        // Limpiar intervalo al salir de la página
+        window.addEventListener('beforeunload', () => {
+            clearInterval(checkInterval);
+        });
+    </script>
+</body>
+</html>

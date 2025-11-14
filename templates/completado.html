@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro Completado</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .container {
+            max-width: 600px;
+            text-align: center;
+        }
+
+        .success-card {
+            background: white;
+            border-radius: 20px;
+            padding: 50px 40px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+        }
+
+        .success-icon {
+            font-size: 4em;
+            margin-bottom: 20px;
+        }
+
+        .success-card h1 {
+            font-size: 2.5em;
+            margin-bottom: 15px;
+            color: #4CAF50;
+        }
+
+        .success-card h2 {
+            font-size: 1.8em;
+            margin-bottom: 20px;
+            color: #667eea;
+        }
+
+        .success-card p {
+            font-size: 1.2em;
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .details {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 25px 0;
+            text-align: left;
+        }
+
+        .detail-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .detail-item:last-child {
+            border-bottom: none;
+        }
+
+        .detail-label {
+            font-weight: 600;
+            color: #555;
+        }
+
+        .detail-value {
+            color: #333;
+        }
+
+        .btn {
+            padding: 15px 30px;
+            border: none;
+            border-radius: 50px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            margin: 10px;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5a6fd8;
+            transform: scale(1.05);
+        }
+
+        .btn-success {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #45a049;
+            transform: scale(1.05);
+        }
+
+        .action-buttons {
+            margin-top: 30px;
+        }
+
+        .video-feed {
+            margin-top: 20px;
+        }
+
+        .video-container {
+            background: white;
+            border-radius: 15px;
+            padding: 10px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            overflow: hidden;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        .video-container img {
+            width: 100%;
+            height: auto;
+            border-radius: 10px;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="success-card">
+            <div class="success-icon">✅</div>
+            <h1>¡Registro Completado!</h1>
+            <h2>Asistencia Registrada Exitosamente</h2>
+            
+            <p>Su asistencia ha sido registrada en el sistema.</p>
+            <p>Gracias por usar nuestro servicio.</p>
+
+            <div class="details">
+                <div class="detail-item">
+                    <span class="detail-label">Fecha:</span>
+                    <span class="detail-value" id="fecha">{{ user_data.get('fecha', '') }}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Hora de Ingreso:</span>
+                    <span class="detail-value" id="hora">{{ user_data.get('hora', '') }}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Nombre:</span>
+                    <span class="detail-value" id="nombre">{{ user_data.get('nombre', '') }}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Apellido:</span>
+                    <span class="detail-value" id="apellido">{{ user_data.get('apellido', '') }}</span>
+                </div>
+            </div>
+
+            <div class="video-feed">
+                <div class="video-container">
+                    <img src="{{ url_for('video_feed') }}" alt="Video Feed">
+                </div>
+            </div>
+
+            <div class="action-buttons">
+                <button class="btn btn-primary" onclick="newRegistration()">
+                    📝 Nuevo Registro
+                </button>
+                <button class="btn btn-success" onclick="goHome()">
+                    🏠 Volver al Inicio
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function newRegistration() {
+            // Resetear el sistema y comenzar nuevo registro
+            fetch('/reset_system')
+                .then(() => {
+                    window.location.href = '/registro';
+                });
+        }
+
+        function goHome() {
+            window.location.href = '/';
+        }
+
+        // Actualizar detalles con la hora actual
+        document.addEventListener('DOMContentLoaded', function() {
+            const now = new Date();
+            document.getElementById('fecha').textContent = now.toLocaleDateString('es-ES');
+            document.getElementById('hora').textContent = now.toLocaleTimeString('es-ES');
+        });
+    </script>
+</body>
+</html>

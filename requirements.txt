@@ -1,0 +1,9 @@
+opencv-python
+pyzbar
+Pillow
+flask
+numpy
+requests
+assemblyai
+pyaudio
+wave

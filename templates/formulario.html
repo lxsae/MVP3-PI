@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Formulario de Registro</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .form-container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            font-size: 1em;
+            transition: all 0.3s ease;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        input.recording {
+            background: #fff3cd !important;
+            border-color: #ffc107 !important;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(255, 193, 7, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 193, 7, 0); }
+        }
+
+        .btn {
+            padding: 15px 30px;
+            border: none;
+            border-radius: 50px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5a6fd8;
+            transform: scale(1.05);
+        }
+
+        .btn-success {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #45a049;
+            transform: scale(1.05);
+        }
+
+        .btn-back {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-back:hover {
+            background: #5a6268;
+        }
+
+        .btn-voice {
+            background: #ff9800;
+            color: white;
+            margin-left: 10px;
+            padding: 10px 15px;
+            font-size: 0.9em;
+        }
+
+        .btn-voice:hover {
+            background: #f57c00;
+        }
+
+        .btn-voice.recording {
+            background: #dc3545;
+            animation: pulse 1.5s infinite;
+        }
+
+        .btn:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn:disabled:hover {
+            background: #cccccc;
+            transform: none;
+        }
+
+        .action-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 30px;
+        }
+
+        .form-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .form-header h2 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .form-header p {
+            color: #666;
+        }
+
+        .input-with-voice {
+            display: flex;
+            align-items: center;
+        }
+
+        .input-with-voice input {
+            flex: 1;
+        }
+
+        .voice-controls {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            margin-top: 20px;
+            backdrop-filter: blur(10px);
+            color: black;
+        }
+
+        .voice-controls h3 {
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .voice-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+        }
+
+        /* Modal para mensajes */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 15% auto;
+            padding: 30px;
+            border-radius: 15px;
+            width: 80%;
+            max-width: 500px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .modal-icon {
+            font-size: 3em;
+            margin-bottom: 20px;
+        }
+
+        .modal h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.5em;
+        }
+
+        .modal p {
+            color: #666;
+            margin-bottom: 25px;
+            line-height: 1.5;
+            white-space: pre-line;
+        }
+
+        .modal-btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 25px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            margin: 0 10px;
+        }
+
+        .modal-btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .modal-btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        /* Estado de grabación */
+        .recording-status {
+            display: none;
+            text-align: center;
+            padding: 15px;
+            background: #fff3cd;
+            border-radius: 10px;
+            margin: 10px 0;
+            border: 2px solid #ffc107;
+            color: #856404;
+        }
+
+        .recording-status.visible {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .recording-status.success {
+            background: #d1edff;
+            border-color: #007bff;
+            color: #004085;
+        }
+
+        .recording-status.error {
+            background: #f8d7da;
+            border-color: #dc3545;
+            color: #721c24;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .field-help {
+            font-size: 0.8em;
+            color: #666;
+            margin-top: 5px;
+            font-style: italic;
+        }
+
+        @media (max-width: 768px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .btn {
+                width: 100%;
+            }
+
+            .input-with-voice {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .btn-voice {
+                margin-left: 0;
+                width: 100%;
+            }
+
+            .modal-content {
+                width: 90%;
+                margin: 20% auto;
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Formulario de Registro</h1>
+            <p>Complete sus datos personales usando voz o texto</p>
+        </div>
+
+        <div class="form-container">
+            <div class="form-header">
+                <h2>Datos Personales</h2>
+                <p>Por favor, complete todos los campos requeridos (*)</p>
+            </div>
+
+            <!-- Estado de grabación -->
+            <div class="recording-status" id="recordingStatus">
+                <strong>🎤 Procesando audio con AssemblyAI...</strong>
+                <p>Por favor espere mientras se transcribe su audio.</p>
+            </div>
+
+            <form id="registrationForm">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="nombre">Nombre *</label>
+                        <div class="input-with-voice">
+                            <input type="text" id="nombre" name="nombre" required placeholder="Ej: Juan Carlos">
+                            <button type="button" class="btn btn-voice" onclick="startVoiceInput('nombre')" id="nombreVoiceBtn">
+                                🎤 Voz
+                            </button>
+                        </div>
+                        <div class="field-help">Diga: "Mi nombre es [su nombre]"</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="apellido">Apellido *</label>
+                        <div class="input-with-voice">
+                            <input type="text" id="apellido" name="apellido" required placeholder="Ej: Pérez García">
+                            <button type="button" class="btn btn-voice" onclick="startVoiceInput('apellido')" id="apellidoVoiceBtn">
+                                🎤 Voz
+                            </button>
+                        </div>
+                        <div class="field-help">Diga: "Mi apellido es [su apellido]"</div>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="edad">Edad</label>
+                        <div class="input-with-voice">
+                            <input type="number" id="edad" name="edad" min="1" max="120" placeholder="Ej: 25">
+                            <button type="button" class="btn btn-voice" onclick="startVoiceInput('edad')" id="edadVoiceBtn">
+                                🎤 Voz
+                            </button>
+                        </div>
+                        <div class="field-help">Diga: "Tengo [su edad] años"</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="sexo">Sexo</label>
+                        <select id="sexo" name="sexo">
+                            <option value="">Seleccionar</option>
+                            <option value="Masculino">Masculino</option>
+                            <option value="Femenino">Femenino</option>
+                            <option value="Otro">Otro</option>
+                            <option value="Prefiero no decir">Prefiero no decir</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="correo">Correo Electrónico</label>
+                    <div class="input-with-voice">
+                        <input type="email" id="correo" name="correo" placeholder="Ej: juan.perez@email.com">
+                        <button type="button" class="btn btn-voice" onclick="startVoiceInput('correo')" id="correoVoiceBtn">
+                            🎤 Voz
+                        </button>
+                    </div>
+                    <div class="field-help">Diga: "Mi correo es [su email]"</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="celular">Celular</label>
+                    <div class="input-with-voice">
+                        <input type="tel" id="celular" name="celular" pattern="[0-9]{9,15}" placeholder="Ej: 987654321">
+                        <button type="button" class="btn btn-voice" onclick="startVoiceInput('celular')" id="celularVoiceBtn">
+                            🎤 Voz
+                        </button>
+                    </div>
+                    <div class="field-help">Diga: "Mi celular es [su número]"</div>
+                </div>
+
+                <div class="voice-controls">
+                    <h3>🎯 Controles de Voz con AssemblyAI</h3>
+                    <div class="voice-buttons">
+                        
+                        <button type="button" class="btn btn-voice" onclick="clearForm()">
+                            🗑️ Limpiar Formulario
+                        </button>
+                        <button type="button" class="btn btn-voice" onclick="showVoiceHelp()">
+                            ❓ Ayuda de Comandos
+                        </button>
+                    </div>
+                    <div style="margin-top: 15px; font-size: 0.9em; opacity: 0.9;">
+                        💡 <strong>Consejo:</strong> Grabe un audio claro y pausado para mejores resultados
+                    </div>
+                </div>
+
+                <div class="action-buttons">
+                    <button type="button" class="btn btn-back" onclick="goBack()">
+                        ← Volver a Detección
+                    </button>
+                    <button type="submit" class="btn btn-success">
+                        ✅ Registrar Asistencia
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal para mensajes -->
+    <div id="messageModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-icon" id="modalIcon">🎤</div>
+            <h3 id="modalTitle">Voz con AssemblyAI</h3>
+            <p id="modalMessage">Procesando comando de voz...</p>
+            <div>
+                <button class="modal-btn modal-btn-primary" onclick="closeModal()">Aceptar</button>
+                <button class="modal-btn modal-btn-secondary" onclick="closeModalAndContinue()" id="continueBtn" style="display: none;">
+                    Continuar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('registrationForm');
+        let currentRecordingField = null;
+        
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            // Validar campos requeridos
+            const nombre = document.getElementById('nombre').value.trim();
+            const apellido = document.getElementById('apellido').value.trim();
+            
+            if (!nombre || !apellido) {
+                showModal('❌ Campos Requeridos', 'Por favor complete los campos de Nombre y Apellido que son obligatorios.', 'error');
+                return;
+            }
+            
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData);
+            
+            try {
+                showModal('⏳ Registrando', 'Procesando su registro de asistencia...', 'info');
+                
+                const response = await fetch('/api/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showModal('✅ Éxito', 'Asistencia registrada correctamente.\n\nRedirigiendo...', 'success');
+                    setTimeout(() => {
+                        window.location.href = '/completado';
+                    }, 2000);
+                } else {
+                    showModal('❌ Error', 'Error al registrar: ' + result.error, 'error');
+                }
+            } catch (error) {
+                showModal('❌ Error', 'Error de conexión: ' + error.message, 'error');
+            }
+        });
+
+        function startVoiceInput(fieldId) {
+            // Crear elemento de entrada de audio
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'audio/*, .wav, .mp3, .m4a';
+            input.capture = 'microphone';
+            
+            input.onchange = function(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+                
+                // Validar tipo de archivo
+                if (!file.type.startsWith('audio/')) {
+                    showModal('❌ Error', 'Por favor seleccione un archivo de audio válido.', 'error');
+                    return;
+                }
+                
+                // Validar tamaño (max 10MB)
+                if (file.size > 10 * 1024 * 1024) {
+                    showModal('❌ Error', 'El archivo de audio es demasiado grande. Máximo 10MB.', 'error');
+                    return;
+                }
+                
+                // Mostrar indicador de grabación
+                showRecordingIndicator(fieldId);
+                currentRecordingField = fieldId;
+                
+                const formData = new FormData();
+                formData.append('audio', file);
+                formData.append('field', fieldId);
+                
+                fetch('/api/transcribe', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    hideRecordingIndicator();
+                    
+                    if (data.success) {
+                        if (data.field && data.value) {
+                            document.getElementById(data.field).value = data.value;
+                            showRecordingStatus(`✅ Campo "${getFieldName(data.field)}" llenado: "${data.value}"`, 'success');
+                            
+                            // Auto-enfocar siguiente campo
+                            setTimeout(() => focusNextField(data.field), 1000);
+                        } else if (data.action) {
+                            handleVoiceAction(data.action);
+                        } else if (data.text) {
+                            showModal('🎤 Texto Reconocido', `AssemblyAI transcribió:\n\n"${data.text}"`, 'info');
+                        }
+                    } else {
+                        showRecordingStatus(`❌ Error: ${data.error || 'Intente nuevamente'}`, 'error');
+                    }
+                })
+                .catch(error => {
+                    hideRecordingIndicator();
+                    showRecordingStatus(`❌ Error de conexión: ${error.message}`, 'error');
+                });
+            };
+            
+            // Mostrar diálogo de selección de archivo
+            input.click();
+        }
+
+        function showRecordingIndicator(fieldId) {
+            // Mostrar estado de grabación
+            const statusElement = document.getElementById('recordingStatus');
+            statusElement.classList.add('visible');
+            statusElement.innerHTML = `
+                <strong>🎤 Procesando audio con AssemblyAI...</strong>
+                <p>Transcribiendo su audio, por favor espere.</p>
+                <div style="margin-top: 10px; font-size: 0.9em;">
+                    ⏳ Esto puede tomar unos segundos...
+                </div>
+            `;
+            
+            // Resaltar campo y botón
+            const field = document.getElementById(fieldId);
+            const button = document.getElementById(fieldId + 'VoiceBtn');
+            
+            if (field) {
+                field.classList.add('recording');
+                field.placeholder = '⏳ Procesando audio...';
+            }
+            
+            if (button) {
+                button.classList.add('recording');
+                button.innerHTML = '⏳ Procesando...';
+                button.disabled = true;
+            }
+            
+            // Deshabilitar otros botones de voz
+            disableAllVoiceButtons(true);
+        }
+
+        function hideRecordingIndicator() {
+            // Ocultar estado de grabación
+            document.getElementById('recordingStatus').classList.remove('visible');
+            
+            // Restaurar campos a normal
+            const inputs = document.querySelectorAll('input');
+            inputs.forEach(input => {
+                input.classList.remove('recording');
+                // Restaurar placeholder original
+                const fieldId = input.id;
+                const placeholders = {
+                    'nombre': 'Ej: Juan Carlos',
+                    'apellido': 'Ej: Pérez García',
+                    'edad': 'Ej: 25',
+                    'correo': 'Ej: juan.perez@email.com',
+                    'celular': 'Ej: 987654321'
+                };
+                input.placeholder = placeholders[fieldId] || '';
+            });
+            
+            // Restaurar botones
+            const buttons = document.querySelectorAll('.btn-voice');
+            buttons.forEach(button => {
+                button.classList.remove('recording');
+                button.innerHTML = '🎤 Voz';
+                button.disabled = false;
+            });
+            
+            currentRecordingField = null;
+            disableAllVoiceButtons(false);
+        }
+
+        function showRecordingStatus(message, type = 'info') {
+            const statusElement = document.getElementById('recordingStatus');
+            statusElement.classList.add('visible', type);
+            statusElement.innerHTML = `<strong>${message}</strong>`;
+            
+            // Ocultar después de 5 segundos
+            setTimeout(() => {
+                statusElement.classList.remove('visible', 'success', 'error');
+            }, 5000);
+        }
+
+        function disableAllVoiceButtons(disabled) {
+            const voiceButtons = document.querySelectorAll('.btn-voice');
+            voiceButtons.forEach(button => {
+                if (disabled) {
+                    button.disabled = true;
+                    button.style.opacity = '0.6';
+                } else {
+                    button.disabled = false;
+                    button.style.opacity = '1';
+                }
+            });
+        }
+
+        function getFieldName(fieldId) {
+            const fieldNames = {
+                'nombre': 'Nombre',
+                'apellido': 'Apellido',
+                'edad': 'Edad',
+                'correo': 'Correo Electrónico',
+                'celular': 'Celular'
+            };
+            return fieldNames[fieldId] || fieldId;
+        }
+
+        function handleVoiceAction(action) {
+            switch(action) {
+                case 'next_field':
+                    focusNextField(currentRecordingField);
+                    showModal('➡️ Siguiente Campo', 'Navegando al siguiente campo...', 'info');
+                    break;
+                case 'previous_field':
+                    focusPreviousField(currentRecordingField);
+                    showModal('⬅️ Campo Anterior', 'Navegando al campo anterior...', 'info');
+                    break;
+                case 'submit_form':
+                    showModal('✅ Enviando', 'Enviando formulario...', 'info');
+                    setTimeout(() => form.dispatchEvent(new Event('submit')), 1000);
+                    break;
+                case 'clear_form':
+                    if (confirm('¿Está seguro de que desea limpiar todo el formulario?')) {
+                        clearForm();
+                    }
+                    break;
+                case 'show_help':
+                    showVoiceHelp();
+                    break;
+                default:
+                    showModal('🎤 Acción Reconocida', `Se reconoció la acción: ${action}`, 'info');
+            }
+        }
+
+        function focusNextField(currentField) {
+            const fields = ['nombre', 'apellido', 'edad', 'sexo', 'correo', 'celular'];
+            const currentIndex = fields.indexOf(currentField);
+            if (currentIndex !== -1 && currentIndex < fields.length - 1) {
+                const nextField = document.getElementById(fields[currentIndex + 1]);
+                if (nextField) {
+                    nextField.focus();
+                    nextField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }
+        }
+
+        function focusPreviousField(currentField) {
+            const fields = ['nombre', 'apellido', 'edad', 'sexo', 'correo', 'celular'];
+            const currentIndex = fields.indexOf(currentField);
+            if (currentIndex !== -1 && currentIndex > 0) {
+                const prevField = document.getElementById(fields[currentIndex - 1]);
+                if (prevField) {
+                    prevField.focus();
+                    prevField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }
+        }
+
+        async function fillAllWithVoice() {
+            showModal(
+                '🎤 Llenado Completo por Voz', 
+                'Para llenar todo el formulario por voz, puede decir:\n\n' +
+                '"Mi nombre es Juan Pérez García, tengo 25 años, mi correo es juan.perez@email.com y mi celular es 987654321"\n\n' +
+                'O puede llenar cada campo individualmente usando los botones de voz 🎤 junto a cada campo.',
+                'info'
+            );
+        }
+
+        function clearForm() {
+            form.reset();
+            showRecordingStatus('🗑️ Formulario limpiado correctamente', 'success');
+        }
+
+        function showVoiceHelp() {
+            showModal(
+                '❓ Ayuda de Comandos de Voz',
+                'Puede usar estos comandos de voz:\n\n' +
+                '📝 **Para llenar campos:**\n' +
+                '• "Mi nombre es Carlos"\n' +
+                '• "Tengo 30 años"\n' +
+                '• "Mi correo es usuario@email.com"\n' +
+                '• "Mi celular es 987654321"\n\n' +
+                '🎮 **Comandos de navegación:**\n' +
+                '• "Siguiente" o "Continuar"\n' +
+                '• "Anterior" o "Atrás"\n' +
+                '• "Enviar" o "Registrar"\n' +
+                '• "Limpiar" o "Borrar"\n' +
+                '• "Ayuda"\n\n' +
+                '💡 **Consejo:** Hable claro y pausado para mejores resultados.',
+                'info'
+            );
+        }
+
+        function goBack() {
+            if (confirm('¿Está seguro de que desea volver? Los datos no guardados se perderán.')) {
+                window.location.href = '/detectar_rostro';
+            }
+        }
+
+        function showModal(title, message, type = 'info') {
+            const icons = {
+                'success': '✅',
+                'error': '❌',
+                'info': 'ℹ️',
+                'warning': '⚠️'
+            };
+            
+            document.getElementById('modalTitle').textContent = title;
+            document.getElementById('modalMessage').textContent = message;
+            document.getElementById('modalIcon').textContent = icons[type] || '🎤';
+            document.getElementById('messageModal').style.display = 'block';
+        }
+
+        function closeModal() {
+            document.getElementById('messageModal').style.display = 'none';
+        }
+
+        function closeModalAndContinue() {
+            closeModal();
+            focusNextField(currentRecordingField);
+        }
+
+        // Cerrar modal al hacer clic fuera de él
+        window.onclick = function(event) {
+            const modal = document.getElementById('messageModal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        }
+
+        // Tecla Escape para cerrar modal
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeModal();
+            }
+        });
+
+        // Inicialización al cargar la página
+        document.addEventListener('DOMContentLoaded', function() {
+            const now = new Date();
+            console.log('📅 Hora de registro:', now.toLocaleTimeString());
+            
+            // Verificar estado de AssemblyAI
+            checkAssemblyAIStatus();
+        });
+
+        async function checkAssemblyAIStatus() {
+            try {
+                const response = await fetch('/api/system_status');
+                const data = await response.json();
+                
+                if (!data.assemblyai_enabled) {
+                    showModal(
+                        '⚠️ AssemblyAI No Disponible',
+                        'El reconocimiento de voz avanzado con AssemblyAI no está disponible en este momento.\n\n' +
+                        'Puede usar el reconocimiento de voz nativo del navegador como alternativa.',
+                        'warning'
+                    );
+                }
+            } catch (error) {
+                console.log('⚠️ No se pudo verificar el estado de AssemblyAI');
+            }
+        }
+    </script>
+</body>
+</html>
