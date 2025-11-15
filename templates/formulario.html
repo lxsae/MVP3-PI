@@ -433,7 +433,9 @@
                 <div class="voice-controls">
                     <h3>🎯 Controles de Voz con AssemblyAI</h3>
                     <div class="voice-buttons">
-                        
+                        <button type="button" class="btn btn-voice" onclick="fillAllWithVoice()">
+                            🎤 Llenar Todo por Voz
+                        </button>
                         <button type="button" class="btn btn-voice" onclick="clearForm()">
                             🗑️ Limpiar Formulario
                         </button>
@@ -506,6 +508,19 @@
                 const result = await response.json();
                 
                 if (result.success) {
+                    // Guardar datos en sessionStorage para la página de confirmación
+                    const now = new Date();
+                    sessionStorage.setItem('userData', JSON.stringify({
+                        nombre: data.nombre,
+                        apellido: data.apellido,
+                        edad: data.edad,
+                        sexo: data.sexo,
+                        correo: data.correo,
+                        celular: data.celular,
+                        fecha: now.toLocaleDateString('es-ES'),
+                        hora: now.toLocaleTimeString('es-ES')
+                    }));
+                    
                     showModal('✅ Éxito', 'Asistencia registrada correctamente.\n\nRedirigiendo...', 'success');
                     setTimeout(() => {
                         window.location.href = '/completado';

@@ -142,6 +142,26 @@
             border-radius: 10px;
             display: block;
         }
+
+        .user-welcome {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            margin: 20px 0;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .user-welcome h3 {
+            font-size: 1.5em;
+            margin-bottom: 10px;
+        }
+
+        .user-welcome p {
+            font-size: 1.1em;
+            opacity: 0.9;
+            margin: 0;
+        }
     </style>
 </head>
 <body>
@@ -151,25 +171,46 @@
             <h1>¡Registro Completado!</h1>
             <h2>Asistencia Registrada Exitosamente</h2>
             
-            <p>Su asistencia ha sido registrada en el sistema.</p>
-            <p>Gracias por usar nuestro servicio.</p>
+            <!-- Mensaje de bienvenida personalizado -->
+            <div class="user-welcome">
+                <h3>¡Bienvenido/a, <span id="welcomeNombre">Usuario</span>!</h3>
+                <p>Su asistencia ha sido registrada correctamente en el sistema.</p>
+            </div>
+
+            <p>Gracias por usar nuestro servicio de registro facial y de voz.</p>
 
             <div class="details">
                 <div class="detail-item">
-                    <span class="detail-label">Fecha:</span>
-                    <span class="detail-value" id="fecha">{{ user_data.get('fecha', '') }}</span>
+                    <span class="detail-label">Fecha de Registro:</span>
+                    <span class="detail-value" id="fecha">Cargando...</span>
                 </div>
                 <div class="detail-item">
                     <span class="detail-label">Hora de Ingreso:</span>
-                    <span class="detail-value" id="hora">{{ user_data.get('hora', '') }}</span>
+                    <span class="detail-value" id="hora">Cargando...</span>
                 </div>
                 <div class="detail-item">
                     <span class="detail-label">Nombre:</span>
-                    <span class="detail-value" id="nombre">{{ user_data.get('nombre', '') }}</span>
+                    <span class="detail-value" id="nombre">Cargando...</span>
                 </div>
                 <div class="detail-item">
                     <span class="detail-label">Apellido:</span>
-                    <span class="detail-value" id="apellido">{{ user_data.get('apellido', '') }}</span>
+                    <span class="detail-value" id="apellido">Cargando...</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Edad:</span>
+                    <span class="detail-value" id="edad">Cargando...</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Sexo:</span>
+                    <span class="detail-value" id="sexo">Cargando...</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Correo Electrónico:</span>
+                    <span class="detail-value" id="correo">Cargando...</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Celular:</span>
+                    <span class="detail-value" id="celular">Cargando...</span>
                 </div>
             </div>
 
@@ -192,23 +233,76 @@
 
     <script>
         function newRegistration() {
+            // Limpiar sessionStorage antes de nuevo registro
+            sessionStorage.removeItem('userData');
             // Resetear el sistema y comenzar nuevo registro
             fetch('/reset_system')
                 .then(() => {
+                    window.location.href = '/registro';
+                })
+                .catch(error => {
+                    console.error('Error al resetear sistema:', error);
                     window.location.href = '/registro';
                 });
         }
 
         function goHome() {
+            // Limpiar sessionStorage al ir al inicio
+            sessionStorage.removeItem('userData');
             window.location.href = '/';
         }
 
-        // Actualizar detalles con la hora actual
+        // Función para formatear valores vacíos
+        function formatValue(value) {
+            return value && value !== '' ? value : 'No especificado';
+        }
+
+        // Cargar datos del usuario al cargar la página
         document.addEventListener('DOMContentLoaded', function() {
+            const userData = JSON.parse(sessionStorage.getItem('userData') || '{}');
             const now = new Date();
-            document.getElementById('fecha').textContent = now.toLocaleDateString('es-ES');
-            document.getElementById('hora').textContent = now.toLocaleTimeString('es-ES');
+            
+            // Mostrar los datos del usuario
+            document.getElementById('fecha').textContent = userData.fecha || now.toLocaleDateString('es-ES');
+            document.getElementById('hora').textContent = userData.hora || now.toLocaleTimeString('es-ES');
+            document.getElementById('nombre').textContent = formatValue(userData.nombre);
+            document.getElementById('apellido').textContent = formatValue(userData.apellido);
+            document.getElementById('edad').textContent = formatValue(userData.edad);
+            document.getElementById('sexo').textContent = formatValue(userData.sexo);
+            document.getElementById('correo').textContent = formatValue(userData.correo);
+            document.getElementById('celular').textContent = formatValue(userData.celular);
+            
+            // Actualizar mensaje de bienvenida
+            const welcomeNombre = document.getElementById('welcomeNombre');
+            if (userData.nombre) {
+                welcomeNombre.textContent = userData.nombre;
+            } else {
+                welcomeNombre.textContent = 'Usuario';
+            }
+            
+            // Validar que hay datos
+            if (!userData.nombre || !userData.apellido) {
+                console.warn('No se encontraron datos del usuario en sessionStorage');
+                // Mostrar mensaje de advertencia
+                const detailsDiv = document.querySelector('.details');
+                const warningDiv = document.createElement('div');
+                warningDiv.style.background = '#fff3cd';
+                warningDiv.style.color = '#856404';
+                warningDiv.style.padding = '10px';
+                warningDiv.style.borderRadius = '5px';
+                warningDiv.style.marginBottom = '15px';
+                warningDiv.style.textAlign = 'center';
+                warningDiv.innerHTML = '⚠️ <strong>Nota:</strong> Los datos mostrados son de ejemplo. Complete el formulario de registro para ver sus datos personales.';
+                detailsDiv.insertBefore(warningDiv, detailsDiv.firstChild);
+            }
+            
+            console.log('📋 Datos mostrados en confirmación:', userData);
         });
+
+        // Prevenir que el usuario vuelva atrás y pierda los datos
+        window.onbeforeunload = function() {
+            sessionStorage.removeItem('userData');
+        };
     </script>
 </body>
 </html>

@@ -7,3 +7,4 @@ requests
 assemblyai
 pyaudio
 wave
+python-dotenv
