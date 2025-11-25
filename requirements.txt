@@ -9,6 +9,6 @@ werkzeug
 numpy
 requests
 assemblyai
-pyaudio
+# pyaudio - removed for production deployment
 python-dotenv
 psycopg2-binary
