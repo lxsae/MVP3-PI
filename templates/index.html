@@ -1,586 +1,767 @@
 <!DOCTYPE html>
 <html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Sistema de Control de Asistencia</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
 
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            color: #333;
-            padding: 20px;
-        }
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        color: #333;
+        padding: 20px;
+      }
 
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            text-align: center;
-        }
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        text-align: center;
+      }
 
-        header {
-            margin-bottom: 50px;
-            color: white;
+      header {
+        margin-bottom: 50px;
+        color: white;
+        position: relative;
+      }
+
+      .user-info {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        text-align: right;
+      }
+
+      .user-info .user-name {
+        font-size: 1.1em;
+        font-weight: 600;
+        margin-bottom: 5px;
+      }
+
+      .user-info .user-role {
+        font-size: 0.9em;
+        opacity: 0.8;
+        margin-bottom: 10px;
+      }
+
+      .logout-btn {
+        padding: 8px 16px;
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 20px;
+        text-decoration: none;
+        font-size: 0.9em;
+        transition: all 0.3s ease;
+      }
+
+      .logout-btn:hover {
+        background: rgba(255, 255, 255, 0.3);
+        transform: scale(1.05);
+      }
+
+      header h1 {
+        font-size: 3em;
+        margin-bottom: 20px;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+      }
+
+      header p {
+        font-size: 1.3em;
+        opacity: 0.9;
+      }
+
+      .main-menu {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 30px;
+        margin-bottom: 50px;
+      }
+
+      .menu-card {
+        background: white;
+        border-radius: 20px;
+        padding: 40px 30px;
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        cursor: pointer;
+      }
+
+      .menu-card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+      }
+
+      .menu-card h2 {
+        font-size: 1.8em;
+        margin-bottom: 15px;
+        color: #667eea;
+      }
+
+      .menu-card p {
+        font-size: 1.1em;
+        color: #666;
+        margin-bottom: 20px;
+      }
+
+      .btn {
+        padding: 15px 30px;
+        border: none;
+        border-radius: 50px;
+        font-size: 1.1em;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-block;
+      }
+
+      .btn-primary {
+        background: #667eea;
+        color: white;
+      }
+
+      .btn-primary:hover {
+        background: #5a6fd8;
+        transform: scale(1.05);
+      }
+
+      .btn-secondary {
+        background: #4caf50;
+        color: white;
+      }
+
+      .btn-secondary:hover {
+        background: #45a049;
+        transform: scale(1.05);
+      }
+
+      .btn-tertiary {
+        background: #ff9800;
+        color: white;
+      }
+
+      .btn-tertiary:hover {
+        background: #f57c00;
+        transform: scale(1.05);
+      }
+
+      .btn:disabled {
+        background: #cccccc;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .btn:disabled:hover {
+        background: #cccccc;
+        transform: none;
+      }
+
+      .stats-panel {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 15px;
+        padding: 30px;
+        margin-top: 50px;
+        backdrop-filter: blur(10px);
+      }
+
+      .stats-panel h3 {
+        color: white;
+        margin-bottom: 20px;
+        font-size: 1.5em;
+      }
+
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 20px;
+      }
+
+      .stat-item {
+        background: rgba(255, 255, 255, 0.2);
+        padding: 20px;
+        border-radius: 10px;
+        color: white;
+      }
+
+      .stat-value {
+        font-size: 2em;
+        font-weight: bold;
+        margin-bottom: 5px;
+      }
+
+      .stat-label {
+        font-size: 0.9em;
+        opacity: 0.9;
+      }
+
+      footer {
+        margin-top: 50px;
+        color: white;
+        opacity: 0.8;
+      }
+
+      /* Modal para mensajes */
+      .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+      }
+
+      .modal-content {
+        background-color: white;
+        margin: 15% auto;
+        padding: 30px;
+        border-radius: 15px;
+        width: 80%;
+        max-width: 500px;
+        text-align: center;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      }
+
+      .modal-icon {
+        font-size: 3em;
+        margin-bottom: 20px;
+      }
+
+      .modal h3 {
+        color: #333;
+        margin-bottom: 15px;
+        font-size: 1.5em;
+      }
+
+      .modal p {
+        color: #666;
+        margin-bottom: 25px;
+        line-height: 1.5;
+      }
+
+      .modal-btn {
+        padding: 12px 25px;
+        border: none;
+        border-radius: 25px;
+        font-size: 1em;
+        font-weight: 600;
+        cursor: pointer;
+        margin: 0 10px;
+      }
+
+      .modal-btn-primary {
+        background: #667eea;
+        color: white;
+      }
+
+      .modal-btn-secondary {
+        background: #6c757d;
+        color: white;
+      }
+
+      @media (max-width: 768px) {
+        .main-menu {
+          grid-template-columns: 1fr;
         }
 
         header h1 {
-            font-size: 3em;
-            margin-bottom: 20px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-        }
-
-        header p {
-            font-size: 1.3em;
-            opacity: 0.9;
-        }
-
-        .main-menu {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 30px;
-            margin-bottom: 50px;
-        }
-
-        .menu-card {
-            background: white;
-            border-radius: 20px;
-            padding: 40px 30px;
-            box-shadow: 0 15px 35px rgba(0,0,0,0.2);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-            cursor: pointer;
-        }
-
-        .menu-card:hover {
-            transform: translateY(-10px);
-            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
-        }
-
-        .menu-card h2 {
-            font-size: 1.8em;
-            margin-bottom: 15px;
-            color: #667eea;
-        }
-
-        .menu-card p {
-            font-size: 1.1em;
-            color: #666;
-            margin-bottom: 20px;
-        }
-
-        .btn {
-            padding: 15px 30px;
-            border: none;
-            border-radius: 50px;
-            font-size: 1.1em;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            text-decoration: none;
-            display: inline-block;
-        }
-
-        .btn-primary {
-            background: #667eea;
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: #5a6fd8;
-            transform: scale(1.05);
-        }
-
-        .btn-secondary {
-            background: #4CAF50;
-            color: white;
-        }
-
-        .btn-secondary:hover {
-            background: #45a049;
-            transform: scale(1.05);
-        }
-
-        .btn-tertiary {
-            background: #ff9800;
-            color: white;
-        }
-
-        .btn-tertiary:hover {
-            background: #f57c00;
-            transform: scale(1.05);
-        }
-
-        .btn:disabled {
-            background: #cccccc;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        .btn:disabled:hover {
-            background: #cccccc;
-            transform: none;
-        }
-
-        .stats-panel {
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 15px;
-            padding: 30px;
-            margin-top: 50px;
-            backdrop-filter: blur(10px);
-        }
-
-        .stats-panel h3 {
-            color: white;
-            margin-bottom: 20px;
-            font-size: 1.5em;
-        }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-        }
-
-        .stat-item {
-            background: rgba(255, 255, 255, 0.2);
-            padding: 20px;
-            border-radius: 10px;
-            color: white;
-        }
-
-        .stat-value {
-            font-size: 2em;
-            font-weight: bold;
-            margin-bottom: 5px;
-        }
-
-        .stat-label {
-            font-size: 0.9em;
-            opacity: 0.9;
-        }
-
-        footer {
-            margin-top: 50px;
-            color: white;
-            opacity: 0.8;
-        }
-
-        /* Modal para mensajes */
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0,0,0,0.5);
+          font-size: 2.2em;
         }
 
         .modal-content {
-            background-color: white;
-            margin: 15% auto;
-            padding: 30px;
-            border-radius: 15px;
-            width: 80%;
-            max-width: 500px;
-            text-align: center;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+          width: 90%;
+          margin: 20% auto;
         }
-
-        .modal-icon {
-            font-size: 3em;
-            margin-bottom: 20px;
-        }
-
-        .modal h3 {
-            color: #333;
-            margin-bottom: 15px;
-            font-size: 1.5em;
-        }
-
-        .modal p {
-            color: #666;
-            margin-bottom: 25px;
-            line-height: 1.5;
-        }
-
-        .modal-btn {
-            padding: 12px 25px;
-            border: none;
-            border-radius: 25px;
-            font-size: 1em;
-            font-weight: 600;
-            cursor: pointer;
-            margin: 0 10px;
-        }
-
-        .modal-btn-primary {
-            background: #667eea;
-            color: white;
-        }
-
-        .modal-btn-secondary {
-            background: #6c757d;
-            color: white;
-        }
-
-        @media (max-width: 768px) {
-            .main-menu {
-                grid-template-columns: 1fr;
-            }
-            
-            header h1 {
-                font-size: 2.2em;
-            }
-
-            .modal-content {
-                width: 90%;
-                margin: 20% auto;
-            }
-        }
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body
+    data-has-records="{{ 'true' if has_records else 'false' }}"
+    data-show-checkout="{{ 'true' if show_checkout else 'false' }}"
+    data-check-in-time="{{ current_attendance.check_in_time.isoformat() if current_attendance and current_attendance.check_in_time else '' }}"
+  >
     <div class="container">
-        <header>
-            <h1>🏢 Sistema de Control de Asistencia</h1>
-            <p>Registro seguro con verificación facial y comandos de voz</p>
-        </header>
+      <header>
+        <div class="user-info">
+          <div class="user-name">👤 {{ current_user.full_name }}</div>
+          <div class="user-role">{{ current_user.role.title() }}</div>
+          <a href="{{ url_for('logout') }}" class="logout-btn"
+            >🚪 Cerrar Sesión</a
+          >
+        </div>
+        <h1>🏢 Sistema de Control de Asistencia</h1>
+        <p>Registro seguro con verificación facial y comandos de voz</p>
+      </header>
 
-        <div class="main-menu">
-            <div class="menu-card" onclick="location.href='/registro'">
-                <h2>📝 Registrar Asistencia</h2>
-                <p>Registre su asistencia con verificación facial y datos personales</p>
-                <button class="btn btn-primary">Comenzar Registro</button>
-            </div>
+      <div class="main-menu">
+        {% if show_checkout and current_attendance %}
+        <div
+          class="menu-card"
+          style="
+            background: linear-gradient(135deg, #4caf50, #45a049);
+            border: 3px solid #2e7d32;
+          "
+        >
+          <h2>🚪 Hacer Check-out</h2>
+          <p>
+            Check-in: {{ current_attendance.check_in_time.strftime('%H:%M')
+            }}<br />
+            Tiempo trabajado: <span id="worked-time">Calculando...</span>
+          </p>
+          <button class="btn btn-success" onclick="doCheckOut()">
+            Finalizar Jornada
+          </button>
+        </div>
+        {% endif %}
 
-            <div class="menu-card" onclick="exportData()">
-                <h2>📊 Exportar Datos</h2>
-                <p>Descargue todos los registros de asistencia en formato CSV</p>
-                <button class="btn btn-secondary" id="exportBtn">Exportar CSV</button>
-            </div>
-
-            <div class="menu-card" onclick="showRecords()">
-                <h2>👥 Ver Registros</h2>
-                <p>Consulte todos los registros de asistencia del sistema</p>
-                <button class="btn btn-tertiary" id="viewRecordsBtn">Ver Registros</button>
-            </div>
+        <div class="menu-card" onclick="location.href='/registro'">
+          <h2>📝 Registrar Asistencia</h2>
+          <p>
+            Registre su asistencia con verificación facial y datos personales
+          </p>
+          <button class="btn btn-primary">Comenzar Registro</button>
         </div>
 
-        <div class="stats-panel">
-            <h3>Estadísticas del Sistema</h3>
-            <div class="stats-grid">
-                <div class="stat-item">
-                    <div class="stat-value" id="totalRecords">0</div>
-                    <div class="stat-label">Total Registros</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-value" id="todayRecords">0</div>
-                    <div class="stat-label">Registros Hoy</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-value">✓</div>
-                    <div class="stat-label">Sistema Activo</div>
-                </div>
-            </div>
+        {% if current_user.is_admin() %}
+        <div class="menu-card" onclick="location.href='/admin'">
+          <h2>⚙️ Panel de Administración</h2>
+          <p>Gestiona usuarios, departamentos y configuraciones del sistema</p>
+          <button class="btn btn-tertiary">Administrar Sistema</button>
+        </div>
+        {% endif %}
+
+        <div class="menu-card" onclick="exportData()">
+          {% if current_user.is_admin() %}
+          <h2>📊 Exportar Todos los Datos</h2>
+          <p>Descargue todos los registros de asistencia en formato CSV</p>
+          <button class="btn btn-secondary" id="exportBtn">
+            Exportar Todos los Datos
+          </button>
+          {% elif current_user.is_manager() %}
+          <h2>📊 Exportar Datos del Departamento</h2>
+          <p>Descargue los registros de asistencia de su departamento</p>
+          <button class="btn btn-secondary" id="exportBtn">
+            Exportar Datos del Departamento
+          </button>
+          {% else %}
+          <h2>📊 Exportar Mis Datos</h2>
+          <p>Descargue su historial de asistencia personal</p>
+          <button class="btn btn-secondary" id="exportBtn">
+            Exportar Mis Datos
+          </button>
+          {% endif %}
         </div>
 
-        <footer>
-            <p>Sistema compatible con normativas de privacidad - Sin identificación personal</p>
-        </footer>
+        <div class="menu-card" onclick="showRecords()">
+          {% if current_user.is_admin() %}
+          <h2>👥 Ver Todos los Registros</h2>
+          <p>Consulte todos los registros de asistencia del sistema</p>
+          <button class="btn btn-tertiary" id="viewRecordsBtn">
+            Ver Todos los Registros
+          </button>
+          {% elif current_user.is_manager() %}
+          <h2>👥 Ver Registros del Departamento</h2>
+          <p>Consulte los registros de asistencia de su departamento</p>
+          <button class="btn btn-tertiary" id="viewRecordsBtn">
+            Ver Registros del Departamento
+          </button>
+          {% else %}
+          <h2>📋 Ver Mis Registros</h2>
+          <p>Consulte su historial de asistencia personal</p>
+          <button class="btn btn-tertiary" id="viewRecordsBtn">
+            Ver Mis Registros
+          </button>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="stats-panel">
+        <h3>Estadísticas del Día</h3>
+        <div class="stats-grid">
+          <div class="stat-item">
+            <div class="stat-value">{{ stats.total_checkins }}</div>
+            <div class="stat-label">Check-ins Hoy</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value">{{ stats.total_checkouts }}</div>
+            <div class="stat-label">Check-outs Hoy</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value">{{ stats.present_today }}</div>
+            <div class="stat-label">Presentes Hoy</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value">{{ stats.late_arrivals }}</div>
+            <div class="stat-label">Llegadas Tarde</div>
+          </div>
+        </div>
+      </div>
+
+      <footer>
+        <p>
+          Sistema compatible con normativas de privacidad - Sin identificación
+          personal
+        </p>
+      </footer>
     </div>
 
     <!-- Modal para mensajes -->
     <div id="messageModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-icon" id="modalIcon">📭</div>
-            <h3 id="modalTitle">Sin Registros</h3>
-            <p id="modalMessage">No se encontraron registros de asistencia en el sistema.</p>
-            <div>
-                <button class="modal-btn modal-btn-primary" onclick="closeModal()">Aceptar</button>
-                <button class="modal-btn modal-btn-secondary" onclick="goToRegistration()">Ir a Registro</button>
-            </div>
+      <div class="modal-content">
+        <div class="modal-icon" id="modalIcon">📭</div>
+        <h3 id="modalTitle">Sin Registros</h3>
+        <p id="modalMessage">
+          No se encontraron registros de asistencia en el sistema.
+        </p>
+        <div>
+          <button class="modal-btn modal-btn-primary" onclick="closeModal()">
+            Aceptar
+          </button>
+          <button
+            class="modal-btn modal-btn-secondary"
+            onclick="goToRegistration()"
+          >
+            Ir a Registro
+          </button>
         </div>
+      </div>
     </div>
 
     <script>
-        let hasRecords = false;
+      let hasRecords = document.body.dataset.hasRecords === "true";
 
-        async function loadStats() {
-            try {
-                const response = await fetch('/api/records');
-                const data = await response.json();
-                
-                document.getElementById('totalRecords').textContent = data.total;
-                hasRecords = data.has_records;
-                
-                // Calcular registros de hoy
-                const today = new Date().toISOString().split('T')[0];
-                const todayRecords = data.records.filter(record => record.Fecha === today).length;
-                document.getElementById('todayRecords').textContent = todayRecords;
-                
-                // Actualizar estado de los botones
-                updateButtonsState();
-                
-            } catch (error) {
-                console.error('Error cargando estadísticas:', error);
-                updateButtonsState();
-            }
+      function doCheckOut() {
+        if (
+          confirm(
+            "¿Estás seguro de que quieres hacer check-out? Esto finalizará tu jornada laboral del día."
+          )
+        ) {
+          fetch("/api/register", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({}),
+          })
+            .then((response) => response.json())
+            .then((result) => {
+              if (result.success) {
+                alert("Check-out realizado correctamente. ¡Hasta mañana!");
+                window.location.reload();
+              } else {
+                alert("Error: " + result.error);
+              }
+            })
+            .catch((error) => {
+              alert("Error de conexión: " + error.message);
+            });
+        }
+      }
+
+      // Update worked time if check-out card is shown
+      const showCheckout = document.body.dataset.showCheckout === "true";
+      const checkInTimeStr = document.body.dataset.checkInTime;
+
+      if (showCheckout && checkInTimeStr) {
+        function updateWorkedTime() {
+          const checkInTime = new Date(checkInTimeStr);
+          const now = new Date();
+          const diff = now - checkInTime;
+
+          const hours = Math.floor(diff / (1000 * 60 * 60));
+          const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+          const timeElement = document.getElementById("worked-time");
+          if (timeElement) {
+            timeElement.textContent = hours + "h " + minutes + "min";
+          }
         }
 
-        function updateButtonsState() {
-            const exportBtn = document.getElementById('exportBtn');
-            const viewRecordsBtn = document.getElementById('viewRecordsBtn');
-            
-            if (!hasRecords) {
-                exportBtn.disabled = true;
-                viewRecordsBtn.disabled = true;
-                exportBtn.title = "No hay registros para exportar";
-                viewRecordsBtn.title = "No hay registros para ver";
+        // Update time every minute
+        updateWorkedTime();
+        setInterval(updateWorkedTime, 60000);
+      }
+
+      function updateButtonsState() {
+        const exportBtn = document.getElementById("exportBtn");
+        const viewRecordsBtn = document.getElementById("viewRecordsBtn");
+
+        if (!hasRecords) {
+          exportBtn.disabled = true;
+          viewRecordsBtn.disabled = true;
+          exportBtn.title = "No hay registros para exportar";
+          viewRecordsBtn.title = "No hay registros para ver";
+        } else {
+          exportBtn.disabled = false;
+          viewRecordsBtn.disabled = false;
+          exportBtn.title = "Exportar registros a CSV";
+          viewRecordsBtn.title = "Ver todos los registros";
+        }
+      }
+
+      function showRecords() {
+        if (!hasRecords) {
+          showModal(
+            "📭 Sin Registros",
+            "No se encontraron registros de asistencia.\n\nRealice algunos registros primero para poder ver la información.",
+            "📝"
+          );
+          return;
+        }
+
+        fetch("/api/records")
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.total === 0) {
+              showModal(
+                "📭 Sin Registros",
+                "No se encontraron registros de asistencia.\n\nRealice algunos registros primero para poder ver la información.",
+                "📝"
+              );
             } else {
-                exportBtn.disabled = false;
-                viewRecordsBtn.disabled = false;
-                exportBtn.title = "Exportar registros a CSV";
-                viewRecordsBtn.title = "Ver todos los registros";
-            }
-        }
+              // Determinar título según rol
+              let title = "📊 Registros de Asistencia";
+              if (data.user_role === "employee") {
+                title = "📋 Mis Registros de Asistencia";
+              } else if (data.user_role === "manager") {
+                title = "👥 Registros del Departamento";
+              }
 
-        function showRecords() {
-            if (!hasRecords) {
-                showModal(
-                    '📭 Sin Registros',
-                    'No se encontraron registros de asistencia en el sistema.\n\nRealice algunos registros primero para poder ver la información.',
-                    '📝'
-                );
-                return;
-            }
-
-            fetch('/api/records')
-                .then(response => response.json())
-                .then(data => {
-                    if (data.total === 0) {
-                        showModal(
-                            '📭 Sin Registros',
-                            'No se encontraron registros de asistencia en el sistema.\n\nRealice algunos registros primero para poder ver la información.',
-                            '📝'
-                        );
-                    } else {
-                        // Abrir en nueva pestaña con formato bonito
-                        const recordsWindow = window.open('', '_blank');
-                        recordsWindow.document.write(`
-                            <html>
-                                <head>
-                                    <title>Registros de Asistencia - Sistema de Control</title>
-                                    <style>
-                                        body { 
-                                            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-                                            padding: 30px; 
-                                            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                                            min-height: 100vh;
-                                            color: #333;
-                                        }
-                                        .container {
-                                            max-width: 1200px;
-                                            margin: 0 auto;
-                                            background: white;
-                                            border-radius: 15px;
-                                            padding: 30px;
-                                            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-                                        }
-                                        h1 { 
-                                            color: #667eea; 
-                                            text-align: center; 
-                                            margin-bottom: 10px;
-                                        }
-                                        .summary {
-                                            text-align: center;
-                                            margin-bottom: 30px;
-                                            color: #666;
-                                        }
-                                        table { 
-                                            width: 100%; 
-                                            border-collapse: collapse; 
-                                            margin: 20px 0; 
-                                            font-size: 0.9em;
-                                        }
-                                        th, td { 
-                                            border: 1px solid #ddd; 
-                                            padding: 12px; 
-                                            text-align: left; 
-                                        }
-                                        th { 
-                                            background-color: #667eea; 
-                                            color: white; 
-                                            font-weight: 600;
-                                        }
-                                        tr:nth-child(even) { 
-                                            background-color: #f8f9fa; 
-                                        }
-                                        tr:hover {
-                                            background-color: #e9ecef;
-                                        }
-                                        .actions {
-                                            text-align: center;
-                                            margin-top: 30px;
-                                        }
-                                        .action-btn {
-                                            padding: 10px 20px;
-                                            border: none;
-                                            border-radius: 25px;
-                                            font-size: 1em;
-                                            font-weight: 600;
-                                            cursor: pointer;
-                                            margin: 0 10px;
-                                            background: #667eea;
-                                            color: white;
-                                        }
-                                        .action-btn:hover {
-                                            background: #5a6fd8;
-                                        }
-                                        @media (max-width: 768px) {
-                                            table {
-                                                font-size: 0.8em;
-                                            }
-                                            th, td {
-                                                padding: 8px;
-                                            }
-                                        }
-                                    </style>
-                                </head>
-                                <body>
-                                    <div class="container">
-                                        <h1>📊 Registros de Asistencia</h1>
-                                        <div class="summary">
-                                            <strong>Total de registros: ${data.total}</strong> | 
-                                            Fecha de consulta: ${new Date().toLocaleDateString('es-ES')}
-                                        </div>
-                                        <table>
-                                            <thead>
-                                                <tr>
-                                                    ${Object.keys(data.records[0] || {}).map(key => 
-                                                        `<th>${key.replace('_', ' ')}</th>`
-                                                    ).join('')}
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                ${data.records.map(record => `
-                                                    <tr>
-                                                        ${Object.values(record).map(value => 
+              // Abrir en nueva pestaña con formato bonito
+              const recordsWindow = window.open("", "_blank");
+              recordsWindow.document.write(`
+                          <html>
+                              <head>
+                                  <title>${title} - Sistema de Control</title>
+                                  <style>
+                                      body {
+                                          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                                          padding: 30px;
+                                          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                                          min-height: 100vh;
+                                          color: #333;
+                                      }
+                                      .container {
+                                          max-width: 1200px;
+                                          margin: 0 auto;
+                                          background: white;
+                                          border-radius: 15px;
+                                          padding: 30px;
+                                          box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+                                      }
+                                      h1 {
+                                          color: #667eea;
+                                          text-align: center;
+                                          margin-bottom: 10px;
+                                      }
+                                      .summary {
+                                          text-align: center;
+                                          margin-bottom: 30px;
+                                          color: #666;
+                                      }
+                                      table {
+                                          width: 100%;
+                                          border-collapse: collapse;
+                                          margin: 20px 0;
+                                          font-size: 0.9em;
+                                      }
+                                      th, td {
+                                          border: 1px solid #ddd;
+                                          padding: 12px;
+                                          text-align: left;
+                                      }
+                                      th {
+                                          background-color: #667eea;
+                                          color: white;
+                                          font-weight: 600;
+                                      }
+                                      tr:nth-child(even) {
+                                          background-color: #f8f9fa;
+                                      }
+                                      tr:hover {
+                                          background-color: #e9ecef;
+                                      }
+                                      .actions {
+                                          text-align: center;
+                                          margin-top: 30px;
+                                      }
+                                      .action-btn {
+                                          padding: 10px 20px;
+                                          border: none;
+                                          border-radius: 25px;
+                                          font-size: 1em;
+                                          font-weight: 600;
+                                          cursor: pointer;
+                                          margin: 0 10px;
+                                          background: #667eea;
+                                          color: white;
+                                      }
+                                      .action-btn:hover {
+                                          background: #5a6fd8;
+                                      }
+                                      @media (max-width: 768px) {
+                                          table {
+                                              font-size: 0.8em;
+                                          }
+                                          th, td {
+                                              padding: 8px;
+                                          }
+                                      }
+                                  </style>
+                              </head>
+                              <body>
+                                  <div class="container">
+                                      <h1>${title}</h1>
+                                      <div class="summary">
+                                          <strong>Total de registros: ${
+                                            data.total
+                                          }</strong> |
+                                          Fecha de consulta: ${new Date().toLocaleDateString(
+                                            "es-ES"
+                                          )}
+                                      </div>
+                                      <table>
+                                          <thead>
+                                              <tr>
+                                                  ${Object.keys(
+                                                    data.records[0] || {}
+                                                  )
+                                                    .map(
+                                                      (key) =>
+                                                        `<th>${key.replace(
+                                                          /_/g,
+                                                          " "
+                                                        )}</th>`
+                                                    )
+                                                    .join("")}
+                                              </tr>
+                                          </thead>
+                                          <tbody>
+                                              ${data.records
+                                                .map(
+                                                  (record) => `
+                                                  <tr>
+                                                      ${Object.values(record)
+                                                        .map(
+                                                          (value) =>
                                                             `<td>${value}</td>`
-                                                        ).join('')}
-                                                    </tr>
-                                                `).join('')}
-                                            </tbody>
-                                        </table>
-                                        <div class="actions">
-                                            <button class="action-btn" onclick="window.print()">🖨️ Imprimir</button>
-                                            <button class="action-btn" onclick="window.close()">❌ Cerrar</button>
-                                        </div>
-                                    </div>
-                                </body>
-                            </html>
-                        `);
-                    }
-                })
-                .catch(error => {
-                    showModal(
-                        '❌ Error',
-                        'Ocurrió un error al cargar los registros: ' + error.message,
-                        '⚠️'
-                    );
-                });
-        }
-
-        function exportData() {
-            if (!hasRecords) {
-                showModal(
-                    '📭 Sin Registros',
-                    'No hay registros de asistencia para exportar.\n\nRealice algunos registros primero y luego intente exportar.',
-                    '📝'
-                );
-                return;
+                                                        )
+                                                        .join("")}
+                                                  </tr>
+                                              `
+                                                )
+                                                .join("")}
+                                          </tbody>
+                                      </table>
+                                      <div class="actions">
+                                          <button class="action-btn" onclick="window.print()">🖨️ Imprimir</button>
+                                          <button class="action-btn" onclick="window.close()">❌ Cerrar</button>
+                                      </div>
+                                  </div>
+                              </body>
+                          </html>
+                      `);
             }
+          })
+          .catch((error) => {
+            showModal(
+              "❌ Error",
+              "Ocurrió un error al cargar los registros: " + error.message,
+              "⚠️"
+            );
+          });
+      }
 
-            fetch('/api/export_csv')
-                .then(response => {
-                    if (response.ok) {
-                        return response.blob();
-                    } else {
-                        return response.text().then(text => {
-                            // Si la respuesta es HTML (sin registros), mostrarla
-                            const blob = new Blob([text], { type: 'text/html' });
-                            return blob;
-                        });
-                    }
-                })
-                .then(blob => {
-                    if (blob.type === 'text/html') {
-                        // Mostrar mensaje de no hay registros
-                        const url = URL.createObjectURL(blob);
-                        window.open(url, '_blank');
-                    } else {
-                        // Descargar CSV normal
-                        const url = URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = `asistencia_${new Date().toISOString().split('T')[0]}.csv`;
-                        document.body.appendChild(a);
-                        a.click();
-                        document.body.removeChild(a);
-                        URL.revokeObjectURL(url);
-                        
-                        showModal(
-                            '✅ Éxito',
-                            'Los registros se han exportado correctamente en formato CSV.',
-                            '📥'
-                        );
-                    }
-                })
-                .catch(error => {
-                    showModal(
-                        '❌ Error',
-                        'Ocurrió un error al exportar los registros: ' + error.message,
-                        '⚠️'
-                    );
-                });
+      function exportData() {
+        if (!hasRecords) {
+          showModal(
+            "📭 Sin Registros",
+            "No hay registros de asistencia para exportar.\n\nRealice algunos registros primero y luego intente exportar.",
+            "📝"
+          );
+          return;
         }
 
-        function showModal(title, message, icon = '📭') {
-            document.getElementById('modalTitle').textContent = title;
-            document.getElementById('modalMessage').textContent = message;
-            document.getElementById('modalIcon').textContent = icon;
-            document.getElementById('messageModal').style.display = 'block';
-        }
-
-        function closeModal() {
-            document.getElementById('messageModal').style.display = 'none';
-        }
-
-        function goToRegistration() {
-            closeModal();
-            window.location.href = '/registro';
-        }
-
-        // Cerrar modal al hacer clic fuera de él
-        window.onclick = function(event) {
-            const modal = document.getElementById('messageModal');
-            if (event.target === modal) {
-                closeModal();
+        fetch("/api/export_csv")
+          .then((response) => {
+            if (response.ok) {
+              return response.blob();
+            } else {
+              return response.text().then((text) => {
+                // Si la respuesta es HTML (sin registros), mostrarla
+                const blob = new Blob([text], { type: "text/html" });
+                return blob;
+              });
             }
-        }
+          })
+          .then((blob) => {
+            if (blob.type === "text/html") {
+              // Mostrar mensaje de no hay registros
+              const url = URL.createObjectURL(blob);
+              window.open(url, "_blank");
+            } else {
+              // Descargar CSV normal
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url;
+              a.download = `asistencia_${
+                new Date().toISOString().split("T")[0]
+              }.csv`;
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+              URL.revokeObjectURL(url);
 
-        // Cargar estadísticas al iniciar
-        loadStats();
-        
-        // Actualizar cada 30 segundos
-        setInterval(loadStats, 30000);
+              showModal(
+                "✅ Éxito",
+                "Los registros se han exportado correctamente en formato CSV.",
+                "📥"
+              );
+            }
+          })
+          .catch((error) => {
+            showModal(
+              "❌ Error",
+              "Ocurrió un error al exportar los registros: " + error.message,
+              "⚠️"
+            );
+          });
+      }
+
+      function showModal(title, message, icon = "📭") {
+        document.getElementById("modalTitle").textContent = title;
+        document.getElementById("modalMessage").textContent = message;
+        document.getElementById("modalIcon").textContent = icon;
+        document.getElementById("messageModal").style.display = "block";
+      }
+
+      function closeModal() {
+        document.getElementById("messageModal").style.display = "none";
+      }
+
+      function goToRegistration() {
+        closeModal();
+        window.location.href = "/registro";
+      }
+
+      // Cerrar modal al hacer clic fuera de él
+      window.onclick = function (event) {
+        const modal = document.getElementById("messageModal");
+        if (event.target === modal) {
+          closeModal();
+        }
+      };
+
+      // Inicializar estado de botones
+      updateButtonsState();
     </script>
-</body>
+  </body>
 </html>

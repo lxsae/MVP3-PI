@@ -2,9 +2,13 @@ opencv-python
 pyzbar
 Pillow
 flask
+flask-sqlalchemy
+flask-login
+flask-migrate
+werkzeug
 numpy
 requests
 assemblyai
 pyaudio
-wave
 python-dotenv
+psycopg2-binary

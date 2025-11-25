@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Iniciar Sesión - Sistema de Asistencia</title>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='style.css') }}"
+    />
+    <style>
+      .login-container {
+        max-width: 400px;
+        margin: 100px auto;
+        padding: 40px;
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 20px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        backdrop-filter: blur(10px);
+      }
+
+      .login-header {
+        text-align: center;
+        margin-bottom: 30px;
+      }
+
+      .login-header h1 {
+        color: #333;
+        font-size: 2em;
+        margin-bottom: 10px;
+      }
+
+      .login-form .form-group {
+        margin-bottom: 20px;
+      }
+
+      .login-form label {
+        display: block;
+        margin-bottom: 5px;
+        color: #555;
+        font-weight: 500;
+      }
+
+      .login-form input[type="text"],
+      .login-form input[type="password"] {
+        width: 100%;
+        padding: 12px 15px;
+        border: 2px solid #e1e1e1;
+        border-radius: 10px;
+        font-size: 16px;
+        transition: border-color 0.3s ease;
+        box-sizing: border-box;
+      }
+
+      .login-form input[type="text"]:focus,
+      .login-form input[type="password"]:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+      }
+
+      .login-btn {
+        width: 100%;
+        padding: 12px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        border-radius: 10px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.2s ease;
+      }
+
+      .login-btn:hover {
+        transform: translateY(-2px);
+      }
+
+      .alert {
+        padding: 10px;
+        border-radius: 5px;
+        margin-bottom: 20px;
+        text-align: center;
+      }
+
+      .alert-error {
+        background-color: #fee;
+        color: #c33;
+        border: 1px solid #fcc;
+      }
+
+      .login-footer {
+        text-align: center;
+        margin-top: 20px;
+        color: #666;
+        font-size: 14px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="login-container">
+      <div class="login-header">
+        <h1>🚀 Sistema de Asistencia</h1>
+        <p>Inicia sesión para continuar</p>
+      </div>
+
+      {% with messages = get_flashed_messages(with_categories=true) %} {% if
+      messages %} {% for category, message in messages %}
+      <div
+        class="alert alert-{{ 'error' if category == 'error' else category }}"
+      >
+        {{ message }}
+      </div>
+      {% endfor %} {% endif %} {% endwith %}
+
+      <form class="login-form" method="POST">
+        <div class="form-group">
+          <label for="username">Usuario:</label>
+          <input type="text" id="username" name="username" required autofocus />
+        </div>
+
+        <div class="form-group">
+          <label for="password">Contraseña:</label>
+          <input type="password" id="password" name="password" required />
+        </div>
+
+        <button type="submit" class="login-btn">Iniciar Sesión</button>
+      </form>
+
+      <div class="login-footer">
+        <p>
+          Usuario por defecto: <strong>admin</strong> /
+          <strong>admin123</strong>
+        </p>
+        <p>¿Olvidaste tu contraseña? Contacta al administrador</p>
+      </div>
+    </div>
+  </body>
+</html>

@@ -1,22 +1,109 @@
 
-from flask import Flask, render_template, Response, jsonify, request, redirect, url_for
+from flask import Flask, render_template, Response, jsonify, request, redirect, url_for, flash, send_from_directory
 import cv2
 import threading
 import time
 import json
 import numpy as np
-from datetime import datetime
+from datetime import datetime, date
 import os
 import csv
 from io import StringIO
-import requests  
-from dotenv import load_dotenv 
+import requests
+from dotenv import load_dotenv
+from flask_login import LoginManager, login_user, logout_user, login_required, current_user
+from werkzeug.utils import secure_filename
+
 load_dotenv()
 app = Flask(__name__)
+
+# Database and authentication setup
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
+database_url = os.getenv('SUPABASE_DATABASE_URL', os.getenv('DATABASE_URL', 'sqlite:///attendance.db'))
+app.config['SQLALCHEMY_DATABASE_URI'] = database_url
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# PostgreSQL specific configuration for Supabase
+if database_url.startswith('postgresql'):
+    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+        'pool_pre_ping': True,
+        'pool_recycle': 300,
+    }
+
+app.config['UPLOAD_FOLDER'] = 'uploads'
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
+
+# Ensure upload folder exists
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+
+from models import db, User, Department, Position, Attendance, Evidence, SystemLog, migrate_csv_data
+
+db.init_app(app)
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'
 # Configuración desde variables de entorno
-ASSEMBLYAI_API_KEY = os.getenv('ASSEMBLYAI_API_KEY') 
+ASSEMBLYAI_API_KEY = os.getenv('ASSEMBLYAI_API_KEY')
 FLASK_ENV = os.getenv('FLASK_ENV', 'production')
 DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
+
+@login_manager.user_loader
+def load_user(user_id):
+    return db.session.get(User, int(user_id))
+
+def create_tables():
+    """Create database tables and migrate data if needed"""
+    with app.app_context():
+        try:
+            db.create_all()
+            print("✅ Conexión a base de datos exitosa")
+        except Exception as e:
+            print(f"❌ Error conectando a la base de datos: {e}")
+            print("💡 Verifica tu configuración de SUPABASE_DATABASE_URL en .env")
+            return False
+        return True
+
+        # Create default admin user if none exists
+        if not User.query.filter_by(role='admin').first():
+            admin = User(
+                username='admin',
+                email='admin@company.com',
+                first_name='Admin',
+                last_name='User',
+                role='admin'
+            )
+            admin.set_password('admin123')
+            db.session.add(admin)
+
+        # Create default departments and positions
+        if not Department.query.first():
+            departments = [
+                Department(name='IT', description='Information Technology'),
+                Department(name='HR', description='Human Resources'),
+                Department(name='Sales', description='Sales and Marketing'),
+                Department(name='Operations', description='Operations'),
+            ]
+            for dept in departments:
+                db.session.add(dept)
+
+        if not Position.query.first():
+            positions = [
+                Position(name='Manager', description='Department Manager'),
+                Position(name='Supervisor', description='Team Supervisor'),
+                Position(name='Employee', description='Regular Employee'),
+                Position(name='Intern', description='Internship Position'),
+            ]
+            for pos in positions:
+                db.session.add(pos)
+
+        try:
+            db.session.commit()
+            # Migrate CSV data if database is empty
+            if not Attendance.query.first():
+                migrate_csv_data()
+        except Exception as e:
+            db.session.rollback()
+            print(f"Error initializing database: {e}")
 
 # Verificar que la API key esté configurada
 if not ASSEMBLYAI_API_KEY:
@@ -114,56 +201,112 @@ class FaceDetector:
         return frame, len(faces) > 0
 
 class AttendanceManager:
-    def __init__(self):
-        self.data_file = 'asistencia_registros.csv'
-        self.ensure_csv_headers()
+    @staticmethod
+    def register_attendance(user_id, user_data=None):
+        """Registrar asistencia en base de datos"""
+        today = date.today()
+        now = datetime.now()
+
+        # Check if user already checked in today
+        existing = Attendance.query.filter_by(user_id=user_id, date=today).first()
+
+        if existing and not existing.check_out_time:
+            # Prevent check-out immediately after check-in (minimum 1 minute)
+            time_since_checkin = now - existing.check_in_time
+            if time_since_checkin.total_seconds() < 60:  # 60 seconds = 1 minute
+                print(f"⚠️ Check-out rechazado: muy pronto después del check-in ({time_since_checkin.total_seconds():.1f}s)")
+                return existing  # Return existing record without check-out
     
-    def ensure_csv_headers(self):
-        """Asegurar que el CSV tenga los encabezados correctos"""
-        if not os.path.exists(self.data_file):
-            with open(self.data_file, 'w', newline='', encoding='utf-8') as f:
-                writer = csv.writer(f)
-                writer.writerow([
-                    'Fecha', 'Hora_Ingreso', 'Nombre', 'Apellido', 'Edad', 
-                    'Sexo', 'Correo', 'Celular', 'Timestamp'
-                ])
+            # Check out
+            existing.check_out_time = now
+            existing.updated_at = now
+            db.session.commit()
     
-    def register_attendance(self, user_data):
-        """Registrar asistencia en CSV"""
-        timestamp = datetime.now()
-        
-        record = {
-            'Fecha': timestamp.strftime('%Y-%m-%d'),
-            'Hora_Ingreso': timestamp.strftime('%H:%M:%S'),
-            'Nombre': user_data.get('nombre', ''),
-            'Apellido': user_data.get('apellido', ''),
-            'Edad': user_data.get('edad', ''),
-            'Sexo': user_data.get('sexo', ''),
-            'Correo': user_data.get('correo', ''),
-            'Celular': user_data.get('celular', ''),
-            'Timestamp': timestamp.isoformat()
-        }
-        
-        # Guardar en CSV
-        with open(self.data_file, 'a', newline='', encoding='utf-8') as f:
-            writer = csv.DictWriter(f, fieldnames=record.keys())
-            writer.writerow(record)
-        
-        print(f"✅ Asistencia registrada: {user_data.get('nombre', '')} {user_data.get('apellido', '')}")
-        return record
+            # Log action
+            SystemLog.log_action(user_id, 'check_out', f'Checked out at {now.strftime("%H:%M:%S")}', request.remote_addr if request else None)
     
-    def get_all_records(self):
-        """Obtener todos los registros"""
+            print(f"✅ Check-out registrado para usuario {user_id}")
+            return existing
+        elif not existing:
+            # Check in
+            attendance = Attendance(
+                user_id=user_id,
+                date=today,
+                check_in_time=now,
+                status='present'
+            )
+
+            # Add legacy data if provided (for migration)
+            if user_data:
+                notes = []
+                if user_data.get('edad'): notes.append(f"Edad: {user_data['edad']}")
+                if user_data.get('sexo'): notes.append(f"Sexo: {user_data['sexo']}")
+                if user_data.get('celular'): notes.append(f"Celular: {user_data['celular']}")
+                attendance.notes = ', '.join(notes)
+
+            db.session.add(attendance)
+            db.session.commit()
+
+            # Log action
+            SystemLog.log_action(user_id, 'check_in', f'Checked in at {now.strftime("%H:%M:%S")}', request.remote_addr if request else None)
+
+            print(f"✅ Check-in registrado para usuario {user_id}")
+            return attendance
+
+        return existing
+
+    @staticmethod
+    def get_user_attendance(user_id, date_from=None, date_to=None):
+        """Obtener registros de asistencia de un usuario"""
+        query = Attendance.query.filter_by(user_id=user_id)
+        if date_from:
+            query = query.filter(Attendance.date >= date_from)
+        if date_to:
+            query = query.filter(Attendance.date <= date_to)
+        return query.order_by(Attendance.date.desc()).all()
+
+    @staticmethod
+    def get_all_records():
+        """Obtener todos los registros para exportación"""
+        attendances = Attendance.query.join(User).order_by(Attendance.date.desc(), Attendance.check_in_time.desc()).all()
+
         records = []
-        if os.path.exists(self.data_file):
-            with open(self.data_file, 'r', encoding='utf-8') as f:
-                reader = csv.DictReader(f)
-                records = list(reader)
+        for att in attendances:
+            record = {
+                'Fecha': att.date.strftime('%Y-%m-%d'),
+                'Hora_Ingreso': att.check_in_time.strftime('%H:%M:%S') if att.check_in_time else '',
+                'Hora_Salida': att.check_out_time.strftime('%H:%M:%S') if att.check_out_time else '',
+                'Nombre': att.user.first_name,
+                'Apellido': att.user.last_name,
+                'Correo': att.user.email,
+                'Departamento': att.user.department.name if att.user.department else '',
+                'Posicion': att.user.position.name if att.user.position else '',
+                'Estado': att.status,
+                'Horas_Trabajadas': f"{att.total_hours:.2f}" if att.total_hours > 0 else '',
+                'Timestamp': att.created_at.isoformat()
+            }
+            records.append(record)
+
         return records
-    
-    def has_records(self):
+
+    @staticmethod
+    def has_records():
         """Verificar si hay registros"""
-        return os.path.exists(self.data_file) and len(self.get_all_records()) > 0
+        return Attendance.query.count() > 0
+
+    @staticmethod
+    def get_today_stats():
+        """Obtener estadísticas del día"""
+        today = date.today()
+        attendances = Attendance.query.filter_by(date=today).all()
+
+        stats = {
+            'total_checkins': len([a for a in attendances if a.check_in_time]),
+            'total_checkouts': len([a for a in attendances if a.check_out_time]),
+            'present_today': len(attendances),
+            'late_arrivals': len([a for a in attendances if a.status == 'late'])
+        }
+        return stats
 
 # Cliente AssemblyAI personalizado
 class SimpleTranscriber:
@@ -455,51 +598,72 @@ def generate_frames():
                            b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
         time.sleep(0.033)
 
-# Rutas de la aplicación
-@app.route('/')
-def index():
-    """Vista principal - Menú de inicio"""
-    has_records = attendance_manager.has_records()
-    return render_template('index.html', has_records=has_records)
+# Rutas de la aplicación (legacy - now handled by protected routes below)
 
-@app.route('/registro')
-def registro():
-    """Vista de registro de asistencia"""
-    global system_state
-    system_state = SystemState.WAITING
-    return render_template('registro.html')
+# Route to serve uploaded files
+@app.route('/uploads/<filename>')
+@login_required
+def uploaded_file(filename):
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+
+# Old registro route removed - now handled by protected route below
 
 @app.route('/detectar_rostro')
+@login_required
 def detectar_rostro():
     """Iniciar detección de rostro"""
     global system_state
     system_state = SystemState.DETECTING_FACE
-    
+
     # Inicializar cámara si no está activa
     if not camera.cap or not camera.cap.isOpened():
         camera.initialize_camera()
-    
-    return render_template('detectar_rostro.html')
+
+    # Check if user needs to complete profile
+    needs_profile_completion = not (
+        current_user.first_name and
+        current_user.last_name and
+        current_user.email
+    )
+
+    return render_template('detectar_rostro.html', needs_profile_completion=needs_profile_completion)
 
 @app.route('/formulario')
+@login_required
 def formulario():
-    """Formulario de datos personales"""
+    """Formulario de datos personales - Solo para completar perfil inicial"""
     global system_state
     if face_detected:
         system_state = SystemState.FACE_DETECTED
         assemblyai_enabled = assemblyai_client.enabled
-        return render_template('formulario.html', assemblyai_enabled=assemblyai_enabled)
+
+        # Check if user has complete profile
+        has_complete_profile = (
+            current_user.first_name and
+            current_user.last_name and
+            current_user.email and
+            current_user.department and
+            current_user.position
+        )
+
+        return render_template('formulario.html',
+                             assemblyai_enabled=assemblyai_enabled,
+                             has_complete_profile=has_complete_profile)
     else:
         return redirect(url_for('detectar_rostro'))
 
 @app.route('/completado')
+@login_required
 def completado():
     """Vista de registro completado"""
     global system_state
     system_state = SystemState.COMPLETED
-    
-    # Pasar los datos del último usuario registrado
-    return render_template('completado.html', user_data=last_registered_user)
+
+    # Get the latest attendance for current user
+    today = date.today()
+    latest_attendance = Attendance.query.filter_by(user_id=current_user.id, date=today).order_by(Attendance.created_at.desc()).first()
+
+    return render_template('completado.html', user_data=last_registered_user, attendance=latest_attendance)
 
 # API endpoints
 @app.route('/video_feed')
@@ -516,41 +680,121 @@ def api_face_status():
     })
 
 @app.route('/api/register', methods=['POST'])
+@login_required
 def api_register():
     """API para registrar asistencia"""
-    global system_state, current_user_data, last_registered_user
-    
+    global system_state, last_registered_user
+
     try:
-        user_data = request.json
-        current_user_data = user_data
-        
-        # Validar datos requeridos
-        required_fields = ['nombre', 'apellido']
-        for field in required_fields:
-            if not user_data.get(field):
-                return jsonify({'success': False, 'error': f'Falta el campo: {field}'})
-        
-        # Registrar asistencia
+        # Check if this is a profile update or attendance registration
+        user_data = request.json or {}
+
+        # If user data is provided, update profile first
+        if user_data and any(key in user_data for key in ['nombre', 'apellido', 'email', 'departamento', 'posicion']):
+            # Update user profile
+            if 'nombre' in user_data:
+                current_user.first_name = user_data['nombre']
+            if 'apellido' in user_data:
+                current_user.last_name = user_data['apellido']
+            if 'email' in user_data:
+                current_user.email = user_data['email']
+            if 'edad' in user_data:
+                current_user.phone = user_data.get('edad', '')  # Using phone field for age for now
+            if 'departamento' in user_data:
+                dept = Department.query.filter_by(name=user_data['departamento']).first()
+                if not dept:
+                    dept = Department(name=user_data['departamento'])
+                    db.session.add(dept)
+                    db.session.flush()
+                current_user.department_id = dept.id
+            if 'posicion' in user_data:
+                pos = Position.query.filter_by(name=user_data['posicion']).first()
+                if not pos:
+                    pos = Position(name=user_data['posicion'])
+                    db.session.add(pos)
+                    db.session.flush()
+                current_user.position_id = pos.id
+
+            db.session.commit()
+            SystemLog.log_action(current_user.id, 'profile_update', 'Updated profile information', request.remote_addr)
+
+        # Registrar asistencia usando el usuario actual
         system_state = SystemState.REGISTERING
         time.sleep(1)  # Pequeña pausa para efecto visual
-        
-        record = attendance_manager.register_attendance(user_data)
-        last_registered_user = record
+
+        record = AttendanceManager.register_attendance(current_user.id)
+        last_registered_user = {
+            'id': record.id,
+            'date': record.date.strftime('%Y-%m-%d'),
+            'check_in_time': record.check_in_time.strftime('%H:%M:%S') if record.check_in_time else None,
+            'check_out_time': record.check_out_time.strftime('%H:%M:%S') if record.check_out_time else None,
+            'status': record.status,
+            'user': current_user.full_name,
+            'total_hours': record.total_hours
+        }
         system_state = SystemState.COMPLETED
-        
+
+        action = 'check_out' if record.check_out_time else 'check_in'
         return jsonify({
-            'success': True, 
-            'message': 'Asistencia registrada correctamente',
-            'record': record
+            'success': True,
+            'message': f'{"Check-out" if record.check_out_time else "Check-in"} registrado correctamente',
+            'record': last_registered_user,
+            'action': action,
+            'redirect_url': url_for('evidencia', attendance_id=record.id) if not record.check_out_time else None
         })
-        
+
     except Exception as e:
+        db.session.rollback()
         return jsonify({'success': False, 'error': str(e)})
 
 @app.route('/api/export_csv')
+@login_required
 def api_export_csv():
-    """Exportar registros a CSV"""
-    records = attendance_manager.get_all_records()
+    """Exportar registros a CSV según permisos"""
+    if current_user.is_admin():
+        # Admin exporta todos los registros
+        records = AttendanceManager.get_all_records()
+    elif current_user.is_manager():
+        # Manager exporta registros de su departamento
+        department_users = User.query.filter_by(department_id=current_user.department_id).all()
+        user_ids = [u.id for u in department_users]
+        attendances = Attendance.query.filter(Attendance.user_id.in_(user_ids)).all()
+
+        records = []
+        for att in attendances:
+            record = {
+                'Fecha': att.date.strftime('%Y-%m-%d'),
+                'Hora_Ingreso': att.check_in_time.strftime('%H:%M:%S') if att.check_in_time else '',
+                'Hora_Salida': att.check_out_time.strftime('%H:%M:%S') if att.check_out_time else '',
+                'Nombre': att.user.first_name,
+                'Apellido': att.user.last_name,
+                'Correo': att.user.email,
+                'Departamento': att.user.department.name if att.user.department else '',
+                'Posicion': att.user.position.name if att.user.position else '',
+                'Estado': att.status,
+                'Horas_Trabajadas': f"{att.total_hours:.2f}" if att.total_hours > 0 else '',
+                'Timestamp': att.created_at.isoformat()
+            }
+            records.append(record)
+    else:
+        # Employee exporta solo sus registros
+        attendances = AttendanceManager.get_user_attendance(current_user.id)
+        records = []
+        for att in attendances:
+            record = {
+                'Fecha': att.date.strftime('%Y-%m-%d'),
+                'Hora_Ingreso': att.check_in_time.strftime('%H:%M:%S') if att.check_in_time else '',
+                'Hora_Salida': att.check_out_time.strftime('%H:%M:%S') if att.check_out_time else '',
+                'Nombre': att.user.first_name,
+                'Apellido': att.user.last_name,
+                'Correo': att.user.email,
+                'Departamento': att.user.department.name if att.user.department else '',
+                'Posicion': att.user.position.name if att.user.position else '',
+                'Estado': att.status,
+                'Horas_Trabajadas': f"{att.total_hours:.2f}" if att.total_hours > 0 else '',
+                'Timestamp': att.created_at.isoformat()
+            }
+            records.append(record)
     
     if not records:
         # Devolver mensaje amigable en lugar de error
@@ -623,13 +867,61 @@ def api_export_csv():
     return response
 
 @app.route('/api/records')
+@login_required
 def api_records():
-    """Obtener todos los registros"""
-    records = attendance_manager.get_all_records()
+    """Obtener registros según permisos del usuario"""
+    if current_user.is_admin():
+        # Admin ve todos los registros
+        records = AttendanceManager.get_all_records()
+    elif current_user.is_manager():
+        # Manager ve registros de su departamento
+        department_users = User.query.filter_by(department_id=current_user.department_id).all()
+        user_ids = [u.id for u in department_users]
+        attendances = Attendance.query.filter(Attendance.user_id.in_(user_ids)).all()
+
+        records = []
+        for att in attendances:
+            record = {
+                'Fecha': att.date.strftime('%Y-%m-%d'),
+                'Hora_Ingreso': att.check_in_time.strftime('%H:%M:%S') if att.check_in_time else '',
+                'Hora_Salida': att.check_out_time.strftime('%H:%M:%S') if att.check_out_time else '',
+                'Nombre': att.user.first_name,
+                'Apellido': att.user.last_name,
+                'Correo': att.user.email,
+                'Departamento': att.user.department.name if att.user.department else '',
+                'Posicion': att.user.position.name if att.user.position else '',
+                'Estado': att.status,
+                'Horas_Trabajadas': f"{att.total_hours:.2f}" if att.total_hours > 0 else '',
+                'Timestamp': att.created_at.isoformat()
+            }
+            records.append(record)
+    else:
+        # Employee ve solo sus propios registros
+        records = AttendanceManager.get_user_attendance(current_user.id)
+        # Convertir a formato de lista como los otros
+        formatted_records = []
+        for att in records:
+            record = {
+                'Fecha': att.date.strftime('%Y-%m-%d'),
+                'Hora_Ingreso': att.check_in_time.strftime('%H:%M:%S') if att.check_in_time else '',
+                'Hora_Salida': att.check_out_time.strftime('%H:%M:%S') if att.check_out_time else '',
+                'Nombre': att.user.first_name,
+                'Apellido': att.user.last_name,
+                'Correo': att.user.email,
+                'Departamento': att.user.department.name if att.user.department else '',
+                'Posicion': att.user.position.name if att.user.position else '',
+                'Estado': att.status,
+                'Horas_Trabajadas': f"{att.total_hours:.2f}" if att.total_hours > 0 else '',
+                'Timestamp': att.created_at.isoformat()
+            }
+            formatted_records.append(record)
+        records = formatted_records
+
     return jsonify({
-        'records': records, 
-        'total': len(records), 
-        'has_records': len(records) > 0
+        'records': records,
+        'total': len(records),
+        'has_records': len(records) > 0,
+        'user_role': current_user.role
     })
 
 @app.route('/api/transcribe', methods=['POST'])
@@ -686,27 +978,272 @@ def api_system_status():
         'total_records': len(attendance_manager.get_all_records())
     })
 
+# Authentication routes
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if current_user.is_authenticated:
+        return redirect(url_for('index'))
+
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+
+        user = User.query.filter_by(username=username).first()
+        if user and user.check_password(password) and user.is_active:
+            login_user(user)
+            SystemLog.log_action(user.id, 'login', f'Login from {request.remote_addr}', request.remote_addr)
+            next_page = request.args.get('next')
+            return redirect(next_page) if next_page else redirect(url_for('index'))
+
+        flash('Usuario o contraseña incorrectos', 'error')
+
+    return render_template('login.html')
+
+@app.route('/logout')
+@login_required
+def logout():
+    SystemLog.log_action(current_user.id, 'logout', f'Logout from {request.remote_addr}', request.remote_addr)
+    logout_user()
+    return redirect(url_for('login'))
+
+# Protected routes
+@app.route('/')
+@login_required
+def index():
+    """Vista principal - Menú de inicio"""
+    has_records = AttendanceManager.has_records()
+    stats = AttendanceManager.get_today_stats()
+
+    # Check if user has checked in today but not checked out
+    today = date.today()
+    current_attendance = Attendance.query.filter_by(
+        user_id=current_user.id,
+        date=today
+    ).first()
+
+    show_checkout = current_attendance and current_attendance.check_in_time and not current_attendance.check_out_time
+
+    return render_template('index.html',
+                         has_records=has_records,
+                         stats=stats,
+                         show_checkout=show_checkout,
+                         current_attendance=current_attendance)
+
+@app.route('/admin')
+@login_required
+def admin():
+    """Panel de administración"""
+    if not current_user.is_admin():
+        flash('Acceso denegado. Se requieren permisos de administrador.', 'error')
+        return redirect(url_for('index'))
+
+    users = User.query.all()
+    departments = Department.query.all()
+    positions = Position.query.all()
+    return render_template('admin.html', users=users, departments=departments, positions=positions)
+
+@app.route('/admin/user/create', methods=['POST'])
+@login_required
+def admin_create_user():
+    """Crear nuevo usuario (solo admin)"""
+    if not current_user.is_admin():
+        return jsonify({'success': False, 'error': 'Acceso denegado'})
+
+    try:
+        username = request.form.get('username')
+        email = request.form.get('email')
+        password = request.form.get('password')
+        first_name = request.form.get('first_name')
+        last_name = request.form.get('last_name')
+        role = request.form.get('role', 'employee')
+        department_id = request.form.get('department_id')
+        position_id = request.form.get('position_id')
+
+        # Validar datos
+        if not all([username, email, password, first_name, last_name]):
+            flash('Todos los campos son obligatorios', 'error')
+            return redirect(url_for('admin'))
+
+        # Verificar si usuario ya existe
+        if User.query.filter_by(username=username).first():
+            flash('El nombre de usuario ya existe', 'error')
+            return redirect(url_for('admin'))
+
+        if User.query.filter_by(email=email).first():
+            flash('El correo electrónico ya está registrado', 'error')
+            return redirect(url_for('admin'))
+
+        # Crear usuario
+        user = User(
+            username=username,
+            email=email,
+            first_name=first_name,
+            last_name=last_name,
+            role=role,
+            department_id=int(department_id) if department_id else None,
+            position_id=int(position_id) if position_id else None
+        )
+        user.set_password(password)
+
+        db.session.add(user)
+        db.session.commit()
+
+        # Log action
+        SystemLog.log_action(current_user.id, 'create_user', f'Created user {username}', request.remote_addr)
+
+        flash(f'Usuario {username} creado exitosamente', 'success')
+        return redirect(url_for('admin'))
+
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error al crear usuario: {str(e)}', 'error')
+        return redirect(url_for('admin'))
+
+@app.route('/registro')
+@login_required
+def registro():
+    """Vista de registro de asistencia"""
+    global system_state
+    system_state = SystemState.WAITING
+
+    # Check if user already checked in today
+    today = date.today()
+    existing_attendance = Attendance.query.filter_by(user_id=current_user.id, date=today).first()
+    already_checked_in = existing_attendance and existing_attendance.check_in_time and not existing_attendance.check_out_time
+
+    return render_template('registro.html', already_checked_in=already_checked_in, attendance=existing_attendance)
+
+@app.route('/evidencia/<int:attendance_id>')
+@login_required
+def evidencia(attendance_id):
+    """Vista para subir evidencia de actividades"""
+    attendance = Attendance.query.filter_by(id=attendance_id, user_id=current_user.id).first()
+    if not attendance:
+        flash('Registro de asistencia no encontrado', 'error')
+        return redirect(url_for('index'))
+
+    # Get existing evidence
+    existing_evidence = Evidence.query.filter_by(attendance_id=attendance_id).all()
+
+    return render_template('evidencia.html', attendance=attendance, existing_evidence=existing_evidence)
+
+@app.route('/api/evidence/upload', methods=['POST'])
+@login_required
+def upload_evidence():
+    """API para subir evidencia"""
+    try:
+        attendance_id = request.form.get('attendance_id')
+        evidence_type = request.form.get('type')
+        title = request.form.get('title', '')
+        content = request.form.get('content', '')
+
+        # Verify attendance belongs to user
+        attendance = Attendance.query.filter_by(id=attendance_id, user_id=current_user.id).first()
+        if not attendance:
+            return jsonify({'success': False, 'error': 'Registro no encontrado'})
+
+        # Handle file upload for photos
+        filename = None
+        if evidence_type == 'photo' and 'file' in request.files:
+            file = request.files['file']
+            if file.filename != '':
+                filename = secure_filename(f"{current_user.id}_{attendance_id}_{int(time.time())}_{file.filename}")
+                file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                file.save(file_path)
+
+        # Create evidence record
+        evidence = Evidence(
+            attendance_id=attendance_id,
+            type=evidence_type,
+            title=title,
+            content=content,
+            file_path=filename  # Store only filename, not full path
+        )
+
+        db.session.add(evidence)
+        db.session.commit()
+
+        # Log action
+        SystemLog.log_action(current_user.id, 'upload_evidence', f'Uploaded {evidence_type} evidence for attendance {attendance_id}', request.remote_addr)
+
+        return jsonify({
+            'success': True,
+            'message': 'Evidencia subida correctamente',
+            'evidence': {
+                'id': evidence.id,
+                'type': evidence.type,
+                'title': evidence.title,
+                'content': evidence.content,
+                'file_path': evidence.file_path,
+                'created_at': evidence.created_at.strftime('%Y-%m-%d %H:%M:%S')
+            }
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/evidence/<int:evidence_id>', methods=['DELETE'])
+@login_required
+def delete_evidence(evidence_id):
+    """Eliminar evidencia"""
+    try:
+        evidence = Evidence.query.filter_by(id=evidence_id).first()
+        if not evidence:
+            return jsonify({'success': False, 'error': 'Evidencia no encontrada'})
+
+        # Check if evidence belongs to user's attendance
+        attendance = Attendance.query.filter_by(id=evidence.attendance_id, user_id=current_user.id).first()
+        if not attendance:
+            return jsonify({'success': False, 'error': 'No autorizado'})
+
+        # Delete file if exists
+        if evidence.file_path:
+            full_path = os.path.join(app.config['UPLOAD_FOLDER'], evidence.file_path)
+            if os.path.exists(full_path):
+                os.remove(full_path)
+
+        db.session.delete(evidence)
+        db.session.commit()
+
+        # Log action
+        SystemLog.log_action(current_user.id, 'delete_evidence', f'Deleted evidence {evidence_id}', request.remote_addr)
+
+        return jsonify({'success': True, 'message': 'Evidencia eliminada'})
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)})
+
 if __name__ == '__main__':
+    # Create database tables and migrate data
+    if not create_tables():
+        print("❌ No se pudo conectar a la base de datos. Revisa la configuración.")
+        exit(1)
+
     # Iniciar procesamiento de frames
     processing_thread = threading.Thread(target=process_frames, daemon=True)
     processing_thread.start()
-    
-    print("🚀 Sistema de Control de Asistencia Mejorado")
+
+    db_type = "Supabase PostgreSQL" if os.getenv('SUPABASE_DATABASE_URL') else "SQLite"
+    print(f"🚀 Sistema de Control de Asistencia Mejorado con {db_type}")
     print("🌐 Accede a: http://localhost:5000")
     print("📊 Características:")
+    print("   - Autenticación de usuarios con roles")
+    print(f"   - Base de datos {db_type} para almacenamiento")
     print("   - Detección facial para verificación")
-    print("   - Formulario completo de datos personales")
-    print("   - Exportación a CSV")
-    print("   - Interfaz de múltiples vistas")
+    print("   - Check-in/Check-out con seguimiento de horas")
+    print("   - Dashboard administrativo")
+    print("   - Sistema de logs y auditoría")
     if assemblyai_client.enabled:
         print("   - ✅ AssemblyAI integrado para comandos de voz")
         print("   - 🔑 API Key configurada correctamente")
     else:
         print("   - ❌ AssemblyAI no configurado")
         print("   - 💡 Verifica que la API key sea válida")
-    
+
     try:
-        app.run(host='0.0.0.0', port=5000, debug=False, threaded=True)
+        app.run(host='0.0.0.0', port=5000, debug=DEBUG, threaded=True)
     except KeyboardInterrupt:
         print("\n🛑 Cerrando sistema...")
         camera.release()
