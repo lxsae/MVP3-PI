@@ -56,10 +56,10 @@ def create_tables():
     with app.app_context():
         try:
             db.create_all()
-            print("✅ Conexión a base de datos exitosa")
+            print("Conexión a base de datos exitosa")
         except Exception as e:
-            print(f"❌ Error conectando a la base de datos: {e}")
-            print("💡 Verifica tu configuración de SUPABASE_DATABASE_URL en .env")
+            print(f"Error conectando a la base de datos: {e}")
+            print("Verifica tu configuración de SUPABASE_DATABASE_URL en .env")
             return False
         return True
 
@@ -107,8 +107,8 @@ def create_tables():
 
 # Verificar que la API key esté configurada
 if not ASSEMBLYAI_API_KEY:
-    print("❌ ERROR: ASSEMBLYAI_API_KEY no encontrada en variables de entorno")
-    print("💡 Crea un archivo .env con tu API key")
+    print("ERROR: ASSEMBLYAI_API_KEY no encontrada en variables de entorno")
+    print("Crea un archivo .env con tu API key")
     exit(1)
 
 # Estado del sistema
@@ -313,7 +313,7 @@ class SimpleTranscriber:
     def __init__(self, api_key=None):
         self.api_key = api_key
         self.enabled = bool(api_key and api_key != "tu_api_key_aqui")
-        print(f"🔧 AssemblyAI configurado: {self.enabled}")
+        print(f"AssemblyAI configurado: {self.enabled}")
     
     def transcribe_audio(self, audio_file_path):
         """Transcripción simple usando la API REST de AssemblyAI"""
@@ -321,7 +321,7 @@ class SimpleTranscriber:
             return {"error": "AssemblyAI no configurado"}
         
         try:
-            print("📤 Subiendo audio a AssemblyAI...")
+            print("Subiendo audio a AssemblyAI...")
             
             # Leer archivo de audio
             with open(audio_file_path, 'rb') as audio_file:
@@ -335,11 +335,11 @@ class SimpleTranscriber:
                 
                 if upload_response.status_code != 200:
                     error_msg = f"Error en upload ({upload_response.status_code}): {upload_response.text}"
-                    print(f"❌ {error_msg}")
+                    print(f"Error: {error_msg}")
                     return {"error": error_msg}
                 
                 upload_url = upload_response.json()['upload_url']
-                print("✅ Audio subido correctamente")
+                print("Audio subido correctamente")
                 
                 # Solicitar transcripción
                 transcript_response = requests.post(
@@ -357,11 +357,11 @@ class SimpleTranscriber:
                 
                 if transcript_response.status_code != 200:
                     error_msg = f"Error en transcripción ({transcript_response.status_code}): {transcript_response.text}"
-                    print(f"❌ {error_msg}")
+                    print(f"Error: {error_msg}")
                     return {"error": error_msg}
                 
                 transcript_id = transcript_response.json()['id']
-                print(f"🆔 ID de transcripción: {transcript_id}")
+                print(f"ID de transcripción: {transcript_id}")
                 
                 # Polling para obtener resultado
                 return self.wait_for_transcription(transcript_id)
@@ -396,7 +396,7 @@ class SimpleTranscriber:
                 status = polling_result['status']
                 
                 if status == 'completed':
-                    print("✅ Transcripción completada")
+                    print("Transcripción completada")
                     return {
                         'success': True,
                         'text': polling_result['text'],
@@ -405,18 +405,18 @@ class SimpleTranscriber:
                     }
                 elif status == 'error':
                     error_msg = polling_result.get('error', 'Error desconocido en transcripción')
-                    print(f"❌ Error en transcripción: {error_msg}")
+                    print(f"Error en transcripción: {error_msg}")
                     return {"error": error_msg}
                 elif status == 'processing':
-                    print("⏳ Procesando audio...")
+                    print("Procesando audio...")
                 elif status == 'queued':
-                    print("📋 Audio en cola...")
+                    print("Audio en cola...")
                 
                 time.sleep(polling_interval)
                 polling_interval = min(polling_interval * 1.5, 5)  # Backoff exponencial
                 
             except requests.exceptions.Timeout:
-                print("⏰ Timeout en polling, reintentando...")
+                print("Timeout en polling, reintentando...")
                 time.sleep(polling_interval)
             except Exception as e:
                 return {"error": f"Error en polling: {str(e)}"}
@@ -445,7 +445,7 @@ class VoiceFormManager:
             return result
         
         text = result["text"].lower().strip()
-        print(f"📝 Texto transcrito: {text}")
+        print(f"Texto transcrito: {text}")
         
         # Si se especifica un campo, usar directamente
         if current_field:
@@ -1218,7 +1218,7 @@ def delete_evidence(evidence_id):
 if __name__ == '__main__':
     # Create database tables and migrate data
     if not create_tables():
-        print("❌ No se pudo conectar a la base de datos. Revisa la configuración.")
+        print("No se pudo conectar a la base de datos. Revisa la configuración.")
         exit(1)
 
     # Iniciar procesamiento de frames
@@ -1226,9 +1226,9 @@ if __name__ == '__main__':
     processing_thread.start()
 
     db_type = "Supabase PostgreSQL" if os.getenv('SUPABASE_DATABASE_URL') else "SQLite"
-    print(f"🚀 Sistema de Control de Asistencia Mejorado con {db_type}")
-    print("🌐 Accede a: http://localhost:5000")
-    print("📊 Características:")
+    print(f"Sistema de Control de Asistencia Mejorado con {db_type}")
+    print("Accede a: http://localhost:5000")
+    print("Características:")
     print("   - Autenticación de usuarios con roles")
     print(f"   - Base de datos {db_type} para almacenamiento")
     print("   - Detección facial para verificación")
@@ -1236,17 +1236,17 @@ if __name__ == '__main__':
     print("   - Dashboard administrativo")
     print("   - Sistema de logs y auditoría")
     if assemblyai_client.enabled:
-        print("   - ✅ AssemblyAI integrado para comandos de voz")
-        print("   - 🔑 API Key configurada correctamente")
+        print("   - AssemblyAI integrado para comandos de voz")
+        print("   - API Key configurada correctamente")
     else:
-        print("   - ❌ AssemblyAI no configurado")
-        print("   - 💡 Verifica que la API key sea válida")
+        print("   - AssemblyAI no configurado")
+        print("   - Verifica que la API key sea válida")
 
     try:
         app.run(host='0.0.0.0', port=5000, debug=DEBUG, threaded=True)
     except KeyboardInterrupt:
-        print("\n🛑 Cerrando sistema...")
+        print("\nCerrando sistema...")
         camera.release()
     except Exception as e:
-        print(f"❌ Error iniciando servidor: {e}")
+        print(f"Error iniciando servidor: {e}")
         camera.release()

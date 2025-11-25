@@ -36,6 +36,7 @@
         top: 20px;
         right: 20px;
         text-align: right;
+        z-index: 100;
       }
 
       .user-info .user-name {
@@ -51,6 +52,7 @@
       }
 
       .logout-btn {
+        display: inline-block;
         padding: 8px 16px;
         background: rgba(255, 255, 255, 0.2);
         color: white;
@@ -59,11 +61,13 @@
         text-decoration: none;
         font-size: 0.9em;
         transition: all 0.3s ease;
+        cursor: pointer;
       }
 
       .logout-btn:hover {
-        background: rgba(255, 255, 255, 0.3);
+        background: rgba(255, 255, 255, 0.4);
         transform: scale(1.05);
+        box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
       }
 
       header h1 {

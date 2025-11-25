@@ -11,7 +11,7 @@ class AssemblyAIClient:
             "authorization": self.api_key,
             "content-type": "application/json"
         }
-        self.enabled = bool(self.api_key and self.api_key != "effa893c8d2342b4a09333f6dfbce42e")
+        self.enabled = bool(self.api_key and self.api_key != "tu_api_key_aqui")
     
     def upload_audio(self, audio_file_path):
         """Subir archivo de audio a AssemblyAI"""
@@ -129,7 +129,7 @@ class VoiceFormManager:
             return result
         
         text = result["text"].lower().strip()
-        print(f"📝 Texto transcrito: {text}")
+        print(f"Texto transcrito: {text}")
         
         # Si se especifica un campo, usar directamente
         if current_field:
