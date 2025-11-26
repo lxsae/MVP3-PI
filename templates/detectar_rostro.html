@@ -259,9 +259,12 @@
 
     <script>
       let faceDetected = false;
-      let checkInterval;
+      let checkTimeout;
+      let isPolling = true;
 
       function checkFaceStatus() {
+        if (!isPolling) return;
+
         fetch("/api/face_status")
           .then((response) => response.json())
           .then((data) => {
@@ -288,6 +291,12 @@
           })
           .catch((error) => {
             console.error("Error checking face status:", error);
+          })
+          .finally(() => {
+            if (isPolling) {
+              // Wait 2 seconds before next check to avoid overloading the server
+              checkTimeout = setTimeout(checkFaceStatus, 2000);
+            }
           });
       }
 
@@ -343,15 +352,13 @@
         window.location.href = "/registro";
       }
 
-      // Verificar estado cada segundo
-      checkInterval = setInterval(checkFaceStatus, 1000);
-
-      // Verificar inmediatamente al cargar
+      // Iniciar verificación
       checkFaceStatus();
 
-      // Limpiar intervalo al salir de la página
+      // Limpiar timeout al salir de la página
       window.addEventListener("beforeunload", () => {
-        clearInterval(checkInterval);
+        isPolling = false;
+        if (checkTimeout) clearTimeout(checkTimeout);
       });
     </script>
   </body>

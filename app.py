@@ -586,7 +586,7 @@ def process_frames():
             with frame_lock:
                 current_frame = processed_frame
             
-            time.sleep(0.033)
+            time.sleep(0.1)  # Reduce CPU usage (10 FPS processing)
         except Exception as e:
             print(f"Error en procesamiento: {e}")
             time.sleep(1)
@@ -601,7 +601,7 @@ def generate_frames():
                     frame_bytes = buffer.tobytes()
                     yield (b'--frame\r\n'
                            b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
-        time.sleep(0.033)
+        time.sleep(0.05)  # Limit streaming FPS to 20
 
 # Rutas de la aplicación (legacy - now handled by protected routes below)
 
