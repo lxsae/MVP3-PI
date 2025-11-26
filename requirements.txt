@@ -1,12 +1,13 @@
-﻿flask
+opencv-python-headless
+Pillow
+flask
 flask-sqlalchemy
 flask-login
 flask-migrate
 werkzeug
 numpy
 requests
+assemblyai
 python-dotenv
 psycopg2-binary
 gunicorn
-opencv-python-headless
-Pillow

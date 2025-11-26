@@ -1,5 +1,5 @@
 
-from flask import Flask, render_template, Response, jsonify, request, redirect, url_for, flash, send_from_directory, session
+from flask import Flask, render_template, Response, jsonify, request, redirect, url_for, flash, send_from_directory
 import cv2
 import threading
 import time
@@ -13,7 +13,6 @@ import requests
 from dotenv import load_dotenv
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.utils import secure_filename
-import base64
 
 load_dotenv()
 app = Flask(__name__)
@@ -133,7 +132,12 @@ class Camera:
     def initialize_camera(self):
         """Inicializar cámara"""
         try:
-            self.cap = cv2.VideoCapture(self.camera_index, cv2.CAP_DSHOW)
+            # cv2.CAP_DSHOW is Windows only, removing it for Linux compatibility
+            if os.name == 'nt':
+                self.cap = cv2.VideoCapture(self.camera_index, cv2.CAP_DSHOW)
+            else:
+                self.cap = cv2.VideoCapture(self.camera_index)
+
             if self.cap.isOpened():
                 self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
                 self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
@@ -616,9 +620,9 @@ def detectar_rostro():
     global system_state
     system_state = SystemState.DETECTING_FACE
 
-    # Inicializar cámara si no está activa (DESACTIVADO PARA PRODUCCIÓN EN RENDER)
-    # if not camera.cap or not camera.cap.isOpened():
-    #     camera.initialize_camera()
+    # Inicializar cámara si no está activa
+    if not camera.cap or not camera.cap.isOpened():
+        camera.initialize_camera()
 
     # Check if user needs to complete profile
     needs_profile_completion = not (
@@ -660,74 +664,15 @@ def completado():
     global system_state
     system_state = SystemState.COMPLETED
 
-    # Intentar recuperar registro desde la sesión
-    attendance_id = session.get('last_attendance_id')
-    current_record = None
-    if attendance_id:
-        current_record = Attendance.query.get(attendance_id)
-
-    # Fallback
+    # Get the latest attendance for current user
     today = date.today()
     latest_attendance = Attendance.query.filter_by(user_id=current_user.id, date=today).order_by(Attendance.created_at.desc()).first()
-    
-    if not current_record:
-        current_record = latest_attendance
 
-    # Build data safely
-    if current_record:
-        user_data = {
-            'id': current_record.id,
-            'date': current_record.date.strftime('%Y-%m-%d'),
-            'check_in_time': current_record.check_in_time.strftime('%H:%M:%S') if current_record.check_in_time else None,
-            'check_out_time': current_record.check_out_time.strftime('%H:%M:%S') if current_record.check_out_time else None,
-            'status': current_record.status,
-            'user': current_record.user.full_name,
-            'total_hours': current_record.total_hours
-        }
-    else:
-        user_data = {
-            'user': current_user.full_name,
-            'date': today.strftime('%Y-%m-%d'),
-            'check_in_time': datetime.now().strftime('%H:%M:%S'),
-            'status': 'present'
-        }
-
-    return render_template('completado.html', user_data=user_data, attendance=current_record)
+    return render_template('completado.html', user_data=last_registered_user, attendance=latest_attendance)
 
 # API endpoints
-@app.route('/api/process_frame', methods=['POST'])
-def process_frame():
-    """Procesar frame enviado desde el cliente"""
-    global face_detected
-    try:
-        data = request.json
-        if 'image' not in data:
-            return jsonify({'error': 'No image provided'}), 400
-
-        # Decodificar imagen base64
-        image_data = data['image'].split(',')[1]
-        image_bytes = base64.b64decode(image_data)
-        
-        # Convertir a array numpy para OpenCV
-        nparr = np.frombuffer(image_bytes, np.uint8)
-        frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-        
-        if frame is None:
-            return jsonify({'error': 'Invalid image'}), 400
-
-        # Detectar rostro
-        _, face_found = face_detector.detect_face(frame)
-        face_detected = face_found
-        
-        return jsonify({'face_detected': face_detected})
-        
-    except Exception as e:
-        print(f"Error processing frame: {e}")
-        return jsonify({'error': str(e)}), 500
-
 @app.route('/video_feed')
 def video_feed():
-    # Deprecated for production, kept for local debug if needed but not used by frontend
     return Response(generate_frames(),
                     mimetype='multipart/x-mixed-replace; boundary=frame')
 
@@ -783,10 +728,6 @@ def api_register():
         time.sleep(1)  # Pequeña pausa para efecto visual
 
         record = AttendanceManager.register_attendance(current_user.id)
-        
-        # Save to session for persistence
-        session['last_attendance_id'] = record.id
-        
         last_registered_user = {
             'id': record.id,
             'date': record.date.strftime('%Y-%m-%d'),
@@ -1285,9 +1226,9 @@ if __name__ == '__main__':
         print("❌ No se pudo conectar a la base de datos. Revisa la configuración.")
         exit(1)
 
-    # Iniciar procesamiento de frames (DESACTIVADO PARA CLIENT-SIDE CAMERA)
-    # processing_thread = threading.Thread(target=process_frames, daemon=True)
-    # processing_thread.start()
+    # Iniciar procesamiento de frames
+    processing_thread = threading.Thread(target=process_frames, daemon=True)
+    processing_thread.start()
 
     db_type = "Supabase PostgreSQL" if os.getenv('SUPABASE_DATABASE_URL') else "SQLite"
     print(f"🚀 Sistema de Control de Asistencia Mejorado con {db_type}")

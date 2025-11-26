@@ -48,19 +48,13 @@
         padding: 10px;
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
         overflow: hidden;
-        position: relative;
       }
 
-      #videoElement {
+      .video-container img {
         width: 100%;
         height: auto;
         border-radius: 10px;
         display: block;
-        transform: scaleX(-1); /* Mirror effect */
-      }
-      
-      #canvasElement {
-        display: none;
       }
 
       .instructions {
@@ -214,8 +208,7 @@
 
       <div class="content">
         <div class="video-container">
-          <video id="videoElement" autoplay playsinline></video>
-          <canvas id="canvasElement"></canvas>
+          <img src="{{ url_for('video_feed') }}" alt="Video Feed" />
         </div>
 
         <div class="instructions">
@@ -241,11 +234,11 @@
 
           <div class="status-panel">
             <div class="status-message" id="statusMessage">
-              Esperando acceso a la cámara...
+              Esperando detección de rostro...
             </div>
             <div class="status-indicator">
               <div class="indicator" id="statusIndicator"></div>
-              <span id="statusText">Iniciando...</span>
+              <span id="statusText">No detectado</span>
             </div>
           </div>
 
@@ -266,103 +259,99 @@
 
     <script>
       let faceDetected = false;
-      let video = document.getElementById('videoElement');
-      let canvas = document.getElementById('canvasElement');
-      let ctx = canvas.getContext('2d');
-      let stream = null;
-      let processingInterval = null;
+      let checkInterval;
 
-      // Iniciar cámara
-      async function startCamera() {
-        try {
-          stream = await navigator.mediaDevices.getUserMedia({ video: true });
-          video.srcObject = stream;
-          document.getElementById("statusMessage").textContent = "Esperando detección de rostro...";
-          document.getElementById("statusText").textContent = "No detectado";
-          
-          // Iniciar procesamiento cuando el video esté listo
-          video.onloadedmetadata = () => {
-             canvas.width = video.videoWidth;
-             canvas.height = video.videoHeight;
-             processingInterval = setInterval(captureAndProcessFrame, 1000); // Enviar frame cada segundo
-          };
-        } catch (err) {
-          console.error("Error accessing camera:", err);
-          document.getElementById("statusMessage").textContent = "Error al acceder a la cámara. Verifique permisos.";
-          document.getElementById("statusText").textContent = "Error";
-          alert("No se pudo acceder a la cámara. Asegúrese de permitir el acceso y estar usando HTTPS.");
-        }
-      }
-
-      // Capturar frame y enviar al backend
-      function captureAndProcessFrame() {
-        if (!video.videoWidth) return;
-        
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        const imageData = canvas.toDataURL('image/jpeg', 0.7); // Calidad 0.7 para reducir tamaño
-        
-        fetch('/api/process_frame', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ image: imageData })
-        })
-        .then(response => response.json())
-        .then(data => {
+      function checkFaceStatus() {
+        fetch("/api/face_status")
+          .then((response) => response.json())
+          .then((data) => {
             faceDetected = data.face_detected;
-            updateUI(faceDetected);
-        })
-        .catch(err => console.error("Error processing frame:", err));
-      }
 
-      function updateUI(detected) {
-        const indicator = document.getElementById("statusIndicator");
-        const statusText = document.getElementById("statusText");
-        const statusMessage = document.getElementById("statusMessage");
-        const continueBtn = document.getElementById("continueBtn");
+            const indicator = document.getElementById("statusIndicator");
+            const statusText = document.getElementById("statusText");
+            const statusMessage = document.getElementById("statusMessage");
+            const continueBtn = document.getElementById("continueBtn");
 
-        if (detected) {
-          indicator.classList.add("detected");
-          statusText.textContent = "Rostro Detectado";
-          statusMessage.textContent = "✓ ¡Rostro detectado correctamente!";
-          statusMessage.style.color = "#2ed573";
-          continueBtn.disabled = false;
-        } else {
-          indicator.classList.remove("detected");
-          statusText.textContent = "No detectado";
-          statusMessage.textContent = "Esperando detección de rostro...";
-          statusMessage.style.color = "white";
-          continueBtn.disabled = true;
-        }
+            if (faceDetected) {
+              indicator.classList.add("detected");
+              statusText.textContent = "Rostro Detectado";
+              statusMessage.textContent = "✓ ¡Rostro detectado correctamente!";
+              statusMessage.style.color = "#2ed573";
+              continueBtn.disabled = false;
+            } else {
+              indicator.classList.remove("detected");
+              statusText.textContent = "No detectado";
+              statusMessage.textContent = "Esperando detección de rostro...";
+              statusMessage.style.color = "white";
+              continueBtn.disabled = true;
+            }
+          })
+          .catch((error) => {
+            console.error("Error checking face status:", error);
+          });
       }
 
       function continueToNext() {
         if (faceDetected) {
+          // Disable button to prevent double-clicks
           const continueBtn = document.getElementById("continueBtn");
           continueBtn.disabled = true;
           continueBtn.textContent = "Procesando...";
 
           const needsProfileCompletion =
             document.body.dataset.needsProfileCompletion === "true";
-            
-          // Siempre ir al formulario para probar, o según lógica original
-          window.location.href = "/formulario";
+
+          if (needsProfileCompletion) {
+            window.location.href = "/formulario";
+          } else {
+            // Direct check-in for users with complete profiles
+            fetch("/api/register", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({}),
+            })
+              .then((response) => response.json())
+              .then((result) => {
+                if (result.success) {
+                  if (result.redirect_url) {
+                    window.location.href = result.redirect_url; // Go to evidence
+                  } else {
+                    window.location.href = "/completado"; // Go to completion
+                  }
+                } else {
+                  alert("Error: " + result.error);
+                  // Re-enable button on error
+                  continueBtn.disabled = false;
+                  continueBtn.textContent = "Continuar →";
+                }
+              })
+              .catch((error) => {
+                alert("Error de conexión: " + error.message);
+                // Re-enable button on error
+                continueBtn.disabled = false;
+                continueBtn.textContent = "Continuar →";
+              });
+          }
+        } else {
+          alert("Por favor, espere a que se detecte su rostro.");
         }
       }
 
       function goBack() {
-        if (stream) {
-            stream.getTracks().forEach(track => track.stop());
-        }
         window.location.href = "/registro";
       }
 
-      // Iniciar al cargar
-      startCamera();
+      // Verificar estado cada segundo
+      checkInterval = setInterval(checkFaceStatus, 1000);
 
-      // Limpiar al salir
+      // Verificar inmediatamente al cargar
+      checkFaceStatus();
+
+      // Limpiar intervalo al salir de la página
       window.addEventListener("beforeunload", () => {
-        if (processingInterval) clearInterval(processingInterval);
-        if (stream) stream.getTracks().forEach(track => track.stop());
+        clearInterval(checkInterval);
       });
     </script>
   </body>

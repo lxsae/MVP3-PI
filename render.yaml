@@ -1,14 +1,9 @@
 services:
   - type: web
-    name: attendance-system
+    name: mvp3-attendance
     env: python
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn app:app
+    startCommand: python -c "from app import create_tables; create_tables()" && gunicorn --bind 0.0.0.0:$PORT app:app
     envVars:
       - key: PYTHON_VERSION
         value: 3.9.0
-      - key: FLASK_ENV
-        value: production
-      - key: SECRET_KEY
-        generateValue: true
-
