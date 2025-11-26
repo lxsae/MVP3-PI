@@ -1,561 +1,126 @@
-<!DOCTYPE html>
-<html lang="es">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Evidencia de Actividades - Sistema de Asistencia</title>
-    <link
-      rel="stylesheet"
-      href="{{ url_for('static', filename='style.css') }}"
-    />
-    <style>
-      .evidence-container {
-        max-width: 1000px;
-        margin: 0 auto;
-        padding: 20px;
-      }
+{% extends "base.html" %}
 
-      .evidence-header {
-        background: white;
-        border-radius: 15px;
-        padding: 30px;
-        margin-bottom: 30px;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-        text-align: center;
-      }
+{% block title %}Subir Evidencia{% endblock %}
 
-      .evidence-header h1 {
-        color: #667eea;
-        margin-bottom: 10px;
-      }
-
-      .attendance-info {
-        background: #f8f9fa;
-        padding: 20px;
-        border-radius: 10px;
-        margin-bottom: 20px;
-      }
-
-      .attendance-info p {
-        margin: 5px 0;
-        color: #333;
-      }
-
-      .evidence-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-        gap: 30px;
-      }
-
-      .evidence-section {
-        background: white;
-        border-radius: 15px;
-        padding: 30px;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-      }
-
-      .section-title {
-        color: #667eea;
-        margin-bottom: 20px;
-        font-size: 1.5em;
-        border-bottom: 2px solid #667eea;
-        padding-bottom: 10px;
-      }
-
-      .form-group {
-        margin-bottom: 20px;
-      }
-
-      .form-group label {
-        display: block;
-        margin-bottom: 8px;
-        font-weight: 600;
-        color: #333;
-      }
-
-      .form-group input[type="text"],
-      .form-group textarea,
-      .form-group select {
-        width: 100%;
-        padding: 12px;
-        border: 2px solid #e1e1e1;
-        border-radius: 8px;
-        font-size: 16px;
-        transition: border-color 0.3s ease;
-      }
-
-      .form-group input[type="text"]:focus,
-      .form-group textarea:focus,
-      .form-group select:focus {
-        outline: none;
-        border-color: #667eea;
-      }
-
-      .form-group textarea {
-        resize: vertical;
-        min-height: 100px;
-      }
-
-      .file-input {
-        border: 2px dashed #667eea;
-        border-radius: 8px;
-        padding: 20px;
-        text-align: center;
-        cursor: pointer;
-        transition: background 0.3s ease;
-      }
-
-      .file-input:hover {
-        background: #f8f9ff;
-      }
-
-      .file-input input[type="file"] {
-        display: none;
-      }
-
-      .btn-submit {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        border: none;
-        padding: 12px 30px;
-        border-radius: 25px;
-        font-size: 16px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: transform 0.2s ease;
-        width: 100%;
-      }
-
-      .btn-submit:hover {
-        transform: translateY(-2px);
-      }
-
-      .evidence-list {
-        margin-top: 30px;
-      }
-
-      .evidence-item {
-        background: #f8f9fa;
-        border-radius: 10px;
-        padding: 20px;
-        margin-bottom: 15px;
-        border-left: 4px solid #667eea;
-      }
-
-      .evidence-item-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 10px;
-      }
-
-      .evidence-type {
-        padding: 4px 8px;
-        border-radius: 12px;
-        font-size: 0.8em;
-        font-weight: 600;
-        text-transform: uppercase;
-      }
-
-      .type-photo {
-        background: #28a745;
-        color: white;
-      }
-
-      .type-note {
-        background: #17a2b8;
-        color: white;
-      }
-
-      .type-checklist {
-        background: #ffc107;
-        color: black;
-      }
-
-      .evidence-content {
-        margin: 10px 0;
-      }
-
-      .evidence-image {
-        max-width: 100%;
-        height: 200px;
-        object-fit: cover;
-        border-radius: 8px;
-        margin: 10px 0;
-      }
-
-      .btn-delete {
-        background: #dc3545;
-        color: white;
-        border: none;
-        padding: 6px 12px;
-        border-radius: 15px;
-        font-size: 0.8em;
-        cursor: pointer;
-        transition: background 0.3s ease;
-      }
-
-      .btn-delete:hover {
-        background: #c82333;
-      }
-
-      .back-btn {
-        display: inline-block;
-        margin-bottom: 20px;
-        padding: 10px 20px;
-        background: #6c757d;
-        color: white;
-        text-decoration: none;
-        border-radius: 20px;
-        transition: background 0.3s ease;
-      }
-
-      .back-btn:hover {
-        background: #5a6268;
-      }
-
-      .alert {
-        padding: 15px;
-        border-radius: 8px;
-        margin-bottom: 20px;
-        text-align: center;
-      }
-
-      .alert-success {
-        background-color: #d4edda;
-        color: #155724;
-        border: 1px solid #c3e6cb;
-      }
-
-      .alert-error {
-        background-color: #f8d7da;
-        color: #721c24;
-        border: 1px solid #f5c6cb;
-      }
-
-      @media (max-width: 768px) {
-        .evidence-grid {
-          grid-template-columns: 1fr;
-        }
-
-        .evidence-container {
-          padding: 10px;
-        }
-      }
-    </style>
-  </head>
-  <body>
-    <div class="evidence-container">
-      <a href="{{ url_for('index') }}" class="back-btn">← Volver al Inicio</a>
-
-      <div class="evidence-header">
-        <h1>📎 Subir Evidencia de Actividades</h1>
-        <p>Documenta las actividades realizadas durante tu turno</p>
-      </div>
-
-      <div class="attendance-info">
-        <p>
-          <strong>Fecha:</strong> {{ attendance.date.strftime('%d/%m/%Y') }}
-        </p>
-        <p>
-          <strong>Hora de entrada:</strong> {{
-          attendance.check_in_time.strftime('%H:%M') if attendance.check_in_time
-          else 'N/A' }}
-        </p>
-        <p>
-          <strong>Hora de salida:</strong> {{
-          attendance.check_out_time.strftime('%H:%M') if
-          attendance.check_out_time else 'N/A' }}
-        </p>
-        <p><strong>Estado:</strong> {{ attendance.status.title() }}</p>
-      </div>
-
-      {% with messages = get_flashed_messages(with_categories=true) %} {% if
-      messages %} {% for category, message in messages %}
-      <div
-        class="alert alert-{{ 'success' if category == 'success' else 'error' }}"
-      >
-        {{ message }}
-      </div>
-      {% endfor %} {% endif %} {% endwith %}
-
-      <div class="evidence-grid">
-        <!-- Subir Foto -->
-        <div class="evidence-section">
-          <h2 class="section-title">📸 Subir Foto</h2>
-          <form id="photoForm" enctype="multipart/form-data">
-            <input
-              type="hidden"
-              name="attendance_id"
-              value="{{ attendance.id }}"
-            />
-            <input type="hidden" name="type" value="photo" />
-
-            <div class="form-group">
-              <label for="photo_title">Título de la foto:</label>
-              <input
-                type="text"
-                id="photo_title"
-                name="title"
-                placeholder="Ej: Área de trabajo al inicio del turno"
-              />
-            </div>
-
-            <div class="form-group">
-              <label>Seleccionar imagen:</label>
-              <div
-                class="file-input"
-                onclick="document.getElementById('photo_file').click()"
-              >
-                <p>📸 Haz clic para seleccionar una imagen</p>
-                <p style="font-size: 0.9em; color: #666">
-                  Formatos: JPG, PNG, GIF (máx. 16MB)
-                </p>
-              </div>
-              <input
-                type="file"
-                id="photo_file"
-                name="file"
-                accept="image/*"
-                required
-              />
-            </div>
-
-            <button type="submit" class="btn-submit">Subir Foto</button>
-          </form>
+{% block content %}
+<div class="container" style="max-width: 900px; margin: 0 auto;">
+    <div class="card glass-panel">
+        <div class="header-section" style="margin-bottom: 30px;">
+            <h2><i class="fas fa-paperclip"></i> Evidencia de Actividades</h2>
+            <p>Sube fotos o documentos que respalden tus actividades del día.</p>
         </div>
 
-        <!-- Agregar Nota -->
-        <div class="evidence-section">
-          <h2 class="section-title">📝 Agregar Nota</h2>
-          <form id="noteForm">
-            <input
-              type="hidden"
-              name="attendance_id"
-              value="{{ attendance.id }}"
-            />
-            <input type="hidden" name="type" value="note" />
+        <div class="row" style="display: flex; gap: 30px; flex-wrap: wrap;">
+            <!-- Upload Form -->
+            <div class="col-md-6" style="flex: 1; min-width: 300px;">
+                <form id="evidence-form" class="glass-panel" style="padding: 25px; background: rgba(255,255,255,0.02);">
+                    <input type="hidden" name="attendance_id" value="{{ attendance.id }}">
+                    
+                    <div class="form-group">
+                        <label>Tipo de Evidencia</label>
+                        <select name="type" class="form-control">
+                            <option value="photo">Fotografía</option>
+                            <option value="document">Documento</option>
+                            <option value="note">Nota de Texto</option>
+                        </select>
+                    </div>
 
-            <div class="form-group">
-              <label for="note_title">Título de la nota:</label>
-              <input
-                type="text"
-                id="note_title"
-                name="title"
-                placeholder="Ej: Actividades completadas"
-              />
+                    <div class="form-group">
+                        <label>Título / Descripción Corta</label>
+                        <input type="text" name="title" class="form-control" placeholder="Ej. Reporte finalizado" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Archivo</label>
+                        <div style="border: 2px dashed var(--glass-border); padding: 20px; text-align: center; border-radius: 8px; cursor: pointer;" onclick="document.getElementById('file-input').click()">
+                            <i class="fas fa-cloud-upload-alt" style="font-size: 2rem; margin-bottom: 10px; color: var(--text-secondary);"></i>
+                            <p style="font-size: 0.9rem;">Click para seleccionar archivo</p>
+                            <input type="file" id="file-input" name="file" style="display: none;">
+                            <span id="file-name" style="display: block; margin-top: 10px; color: var(--accent-color); font-size: 0.85rem;"></span>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-upload"></i> Subir Evidencia
+                    </button>
+                </form>
             </div>
 
-            <div class="form-group">
-              <label for="note_content">Contenido:</label>
-              <textarea
-                id="note_content"
-                name="content"
-                placeholder="Describe las actividades realizadas, problemas encontrados, soluciones implementadas, etc."
-                required
-              ></textarea>
+            <!-- Existing Evidence List -->
+            <div class="col-md-6" style="flex: 1; min-width: 300px;">
+                <h4 style="margin-bottom: 20px;">Archivos Subidos</h4>
+                <div class="evidence-list">
+                    {% if existing_evidence %}
+                        {% for item in existing_evidence %}
+                        <div class="evidence-item glass-panel" style="padding: 15px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">
+                            <div style="display: flex; align-items: center; gap: 15px;">
+                                <div style="width: 40px; height: 40px; background: rgba(255,255,255,0.1); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                                    <i class="fas fa-{{ 'image' if item.type == 'photo' else 'file-alt' }}"></i>
+                                </div>
+                                <div>
+                                    <div style="font-weight: 500;">{{ item.title }}</div>
+                                    <div style="font-size: 0.75rem; color: var(--text-secondary);">{{ item.created_at.strftime('%H:%M') }}</div>
+                                </div>
+                            </div>
+                            <button class="btn-icon" style="color: var(--danger-color);" onclick="deleteEvidence({{ item.id }})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div style="text-align: center; padding: 40px; color: var(--text-secondary); border: 1px solid var(--glass-border); border-radius: 12px;">
+                            <i class="fas fa-folder-open" style="font-size: 2rem; margin-bottom: 10px; opacity: 0.5;"></i>
+                            <p>No hay evidencias subidas aún</p>
+                        </div>
+                    {% endif %}
+                </div>
             </div>
-
-            <button type="submit" class="btn-submit">Guardar Nota</button>
-          </form>
         </div>
-
-        <!-- Checklist de Tareas -->
-        <div class="evidence-section">
-          <h2 class="section-title">✅ Checklist de Tareas</h2>
-          <form id="checklistForm">
-            <input
-              type="hidden"
-              name="attendance_id"
-              value="{{ attendance.id }}"
-            />
-            <input type="hidden" name="type" value="checklist" />
-
-            <div class="form-group">
-              <label for="checklist_title">Título del checklist:</label>
-              <input
-                type="text"
-                id="checklist_title"
-                name="title"
-                placeholder="Ej: Tareas diarias completadas"
-              />
-            </div>
-
-            <div class="form-group">
-              <label for="checklist_content">Tareas completadas:</label>
-              <textarea
-                id="checklist_content"
-                name="content"
-                placeholder="Lista las tareas que completaste durante el turno, una por línea:
-- Verificación de equipos
-- Limpieza del área
-- Reporte de incidentes
-- Actualización de inventario"
-                required
-              ></textarea>
-            </div>
-
-            <button type="submit" class="btn-submit">Guardar Checklist</button>
-          </form>
+        
+        <div style="margin-top: 30px; text-align: center;">
+            <button class="btn btn-secondary" onclick="location.href='{{ url_for('index') }}'" style="max-width: 200px;">
+                Finalizar
+            </button>
         </div>
-
-        <!-- Evidencia Existente -->
-        <div class="evidence-section">
-          <h2 class="section-title">📋 Evidencia Subida</h2>
-          <div id="evidenceList" class="evidence-list">
-            {% for evidence in existing_evidence %}
-            <div class="evidence-item" data-id="{{ evidence.id }}">
-              <div class="evidence-item-header">
-                <span class="evidence-type type-{{ evidence.type }}">
-                  {{ evidence.type.title() }}
-                </span>
-                <button
-                  class="btn-delete"
-                  onclick="deleteEvidence({{ evidence.id }})"
-                >
-                  🗑️
-                </button>
-              </div>
-              {% if evidence.title %}
-              <h4>{{ evidence.title }}</h4>
-              {% endif %}
-              <div class="evidence-content">
-                {% if evidence.type == 'photo' and evidence.file_path %}
-                <img
-                  src="{{ url_for('uploaded_file', filename=evidence.file_path.split('\\')[-1].split('/')[-1]) }}"
-                  alt="{{ evidence.title }}"
-                  class="evidence-image"
-                />
-                {% else %}
-                <p>{{ evidence.content }}</p>
-                {% endif %}
-              </div>
-              <small style="color: #666"
-                >{{ evidence.created_at.strftime('%d/%m/%Y %H:%M') }}</small
-              >
-            </div>
-            {% endfor %}
-          </div>
-        </div>
-      </div>
     </div>
+</div>
+{% endblock %}
 
-    <script>
-      // Handle photo upload
-      document
-        .getElementById("photoForm")
-        .addEventListener("submit", async function (e) {
-          e.preventDefault();
-
-          const formData = new FormData(this);
-
-          try {
-            const response = await fetch("/api/evidence/upload", {
-              method: "POST",
-              body: formData,
-            });
-
-            const result = await response.json();
-
-            if (result.success) {
-              alert("Foto subida correctamente");
-              location.reload();
-            } else {
-              alert("Error: " + result.error);
-            }
-          } catch (error) {
-            alert("Error al subir la foto: " + error.message);
-          }
-        });
-
-      // Handle note submission
-      document
-        .getElementById("noteForm")
-        .addEventListener("submit", async function (e) {
-          e.preventDefault();
-
-          const formData = new FormData(this);
-
-          try {
-            const response = await fetch("/api/evidence/upload", {
-              method: "POST",
-              body: formData,
-            });
-
-            const result = await response.json();
-
-            if (result.success) {
-              alert("Nota guardada correctamente");
-              location.reload();
-            } else {
-              alert("Error: " + result.error);
-            }
-          } catch (error) {
-            alert("Error al guardar la nota: " + error.message);
-          }
-        });
-
-      // Handle checklist submission
-      document
-        .getElementById("checklistForm")
-        .addEventListener("submit", async function (e) {
-          e.preventDefault();
-
-          const formData = new FormData(this);
-
-          try {
-            const response = await fetch("/api/evidence/upload", {
-              method: "POST",
-              body: formData,
-            });
-
-            const result = await response.json();
-
-            if (result.success) {
-              alert("Checklist guardado correctamente");
-              location.reload();
-            } else {
-              alert("Error: " + result.error);
-            }
-          } catch (error) {
-            alert("Error al guardar el checklist: " + error.message);
-          }
-        });
-
-      // Delete evidence
-      async function deleteEvidence(evidenceId) {
-        if (!confirm("¿Estás seguro de que quieres eliminar esta evidencia?")) {
-          return;
+{% block scripts %}
+<script>
+    document.getElementById('file-input').addEventListener('change', function(e) {
+        if (e.target.files[0]) {
+            document.getElementById('file-name').textContent = e.target.files[0].name;
         }
+    });
 
-        try {
-          const response = await fetch(`/api/evidence/${evidenceId}`, {
-            method: "DELETE",
-          });
+    document.getElementById('evidence-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+        
+        fetch('/api/evidence/upload', {
+            method: 'POST',
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                window.location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(err => alert('Error de conexión'));
+    });
 
-          const result = await response.json();
-
-          if (result.success) {
-            alert("Evidencia eliminada correctamente");
-            location.reload();
-          } else {
-            alert("Error: " + result.error);
-          }
-        } catch (error) {
-          alert("Error al eliminar la evidencia: " + error.message);
+    function deleteEvidence(id) {
+        if (confirm('¿Eliminar esta evidencia?')) {
+            fetch(`/api/evidence/${id}`, { method: 'DELETE' })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) window.location.reload();
+            });
         }
-      }
-
-      // Update file input display
-      document
-        .getElementById("photo_file")
-        .addEventListener("change", function (e) {
-          const file = e.target.files[0];
-          if (file) {
-            const fileInput = document.querySelector(".file-input p");
-            fileInput.textContent = `📸 ${file.name}`;
-          }
-        });
-    </script>
-  </body>
-</html>
+    }
+</script>
+{% endblock %}

@@ -1,287 +1,42 @@
-<!DOCTYPE html>
-<html lang="es">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Registro Completado</title>
-    <style>
-      * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-      }
+{% extends "base.html" %}
 
-      body {
-        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        min-height: 100vh;
-        color: #333;
-        padding: 20px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
+{% block title %}Registro Completado{% endblock %}
 
-      .container {
-        max-width: 600px;
-        text-align: center;
-      }
+{% block content %}
+<div class="container" style="max-width: 600px; margin: 0 auto; text-align: center; padding-top: 50px;">
+    <div class="card glass-panel">
+        <div style="font-size: 5rem; color: var(--success-color); margin-bottom: 20px;">
+            <i class="fas fa-check-circle"></i>
+        </div>
+        
+        <h1 style="margin-bottom: 10px;">¡Registro Exitoso!</h1>
+        <p style="color: var(--text-secondary); margin-bottom: 30px;">Tu asistencia ha sido registrada correctamente.</p>
 
-      .success-card {
-        background: white;
-        border-radius: 20px;
-        padding: 50px 40px;
-        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
-      }
-
-      .success-icon {
-        font-size: 4em;
-        margin-bottom: 20px;
-      }
-
-      .success-card h1 {
-        font-size: 2.5em;
-        margin-bottom: 15px;
-        color: #4caf50;
-      }
-
-      .success-card h2 {
-        font-size: 1.8em;
-        margin-bottom: 20px;
-        color: #667eea;
-      }
-
-      .success-card p {
-        font-size: 1.2em;
-        color: #666;
-        margin-bottom: 10px;
-      }
-
-      .details {
-        background: #f8f9fa;
-        border-radius: 10px;
-        padding: 20px;
-        margin: 25px 0;
-        text-align: left;
-      }
-
-      .detail-item {
-        display: flex;
-        justify-content: space-between;
-        padding: 8px 0;
-        border-bottom: 1px solid #e9ecef;
-      }
-
-      .detail-item:last-child {
-        border-bottom: none;
-      }
-
-      .detail-label {
-        font-weight: 600;
-        color: #555;
-      }
-
-      .detail-value {
-        color: #333;
-      }
-
-      .btn {
-        padding: 15px 30px;
-        border: none;
-        border-radius: 50px;
-        font-size: 1.1em;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        text-decoration: none;
-        display: inline-block;
-        margin: 10px;
-      }
-
-      .btn-primary {
-        background: #667eea;
-        color: white;
-      }
-
-      .btn-primary:hover {
-        background: #5a6fd8;
-        transform: scale(1.05);
-      }
-
-      .btn-success {
-        background: #4caf50;
-        color: white;
-      }
-
-      .btn-success:hover {
-        background: #45a049;
-        transform: scale(1.05);
-      }
-
-      .action-buttons {
-        margin-top: 30px;
-      }
-
-      .video-feed {
-        margin-top: 20px;
-      }
-
-      .video-container {
-        background: white;
-        border-radius: 15px;
-        padding: 10px;
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-        overflow: hidden;
-        max-width: 400px;
-        margin: 0 auto;
-      }
-
-      .video-container img {
-        width: 100%;
-        height: auto;
-        border-radius: 10px;
-        display: block;
-      }
-
-      .user-welcome {
-        background: linear-gradient(135deg, #667eea, #764ba2);
-        color: white;
-        padding: 20px;
-        border-radius: 15px;
-        margin: 20px 0;
-        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-      }
-
-      .user-welcome h3 {
-        font-size: 1.5em;
-        margin-bottom: 10px;
-      }
-
-      .user-welcome p {
-        font-size: 1.1em;
-        opacity: 0.9;
-        margin: 0;
-      }
-    </style>
-  </head>
-  <body>
-    <div class="container">
-      <div class="success-card">
-        <div class="success-icon">✅</div>
-        <h1>¡Registro Completado!</h1>
-        <h2>Asistencia Registrada Exitosamente</h2>
-
-        <!-- Mensaje de bienvenida personalizado -->
-        <div class="user-welcome">
-          <h3>¡Bienvenido/a, {{ current_user.first_name or 'Usuario' }}!</h3>
-          <p>Su asistencia ha sido registrada correctamente en el sistema.</p>
+        <div class="glass-panel" style="background: rgba(255,255,255,0.05); padding: 20px; border-radius: 12px; margin-bottom: 30px; text-align: left;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;">
+                <span style="color: var(--text-secondary);">Usuario:</span>
+                <span style="font-weight: bold;">{{ user_data.user }}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;">
+                <span style="color: var(--text-secondary);">Fecha:</span>
+                <span>{{ user_data.date }}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                <span style="color: var(--text-secondary);">Hora:</span>
+                <span style="color: var(--accent-color);">{{ user_data.check_in_time or user_data.check_out_time }}</span>
+            </div>
         </div>
 
-        <p>Gracias por usar nuestro servicio de registro facial y de voz.</p>
-
-        <div class="details">
-          <div class="detail-item">
-            <span class="detail-label">Fecha de Registro:</span>
-            <span class="detail-value"
-              >{{ user_data.date or 'No disponible' }}</span
-            >
-          </div>
-          <div class="detail-item">
-            <span class="detail-label">Hora de Ingreso:</span>
-            <span class="detail-value"
-              >{{ user_data.check_in_time or 'No disponible' }}</span
-            >
-          </div>
-          <div class="detail-item">
-            <span class="detail-label">Nombre:</span>
-            <span class="detail-value"
-              >{{ current_user.first_name or 'No especificado' }}</span
-            >
-          </div>
-          <div class="detail-item">
-            <span class="detail-label">Apellido:</span>
-            <span class="detail-value"
-              >{{ current_user.last_name or 'No especificado' }}</span
-            >
-          </div>
-          <div class="detail-item">
-            <span class="detail-label">Correo Electrónico:</span>
-            <span class="detail-value"
-              >{{ current_user.email or 'No especificado' }}</span
-            >
-          </div>
-          <div class="detail-item">
-            <span class="detail-label">Departamento:</span>
-            <span class="detail-value"
-              >{{ current_user.department.name if current_user.department else
-              'No especificado' }}</span
-            >
-          </div>
-          <div class="detail-item">
-            <span class="detail-label">Posición:</span>
-            <span class="detail-value"
-              >{{ current_user.position.name if current_user.position else 'No
-              especificado' }}</span
-            >
-          </div>
-          <div class="detail-item">
-            <span class="detail-label">Estado:</span>
-            <span class="detail-value"
-              >{{ user_data.status.title() if user_data.status else 'Presente'
-              }}</span
-            >
-          </div>
-          {% if user_data.total_hours %}
-          <div class="detail-item">
-            <span class="detail-label">Horas Trabajadas:</span>
-            <span class="detail-value"
-              >{{ "%.2f"|format(user_data.total_hours) }} horas</span
-            >
-          </div>
-          {% endif %}
+        <div style="display: flex; gap: 15px; justify-content: center;">
+            <button class="btn btn-primary" onclick="location.href='{{ url_for('index') }}'">
+                <i class="fas fa-home"></i> Volver al Inicio
+            </button>
+            {% if attendance %}
+            <button class="btn btn-secondary" onclick="location.href='{{ url_for('evidencia', attendance_id=attendance.id) }}'">
+                <i class="fas fa-paperclip"></i> Subir Evidencia
+            </button>
+            {% endif %}
         </div>
-
-        <!-- Video feed eliminado -->
-
-        <div class="action-buttons">
-          {% if attendance %}
-          <button class="btn btn-primary" onclick="uploadEvidence()">
-            📎 Subir Evidencia
-          </button>
-          {% endif %}
-          <button class="btn btn-primary" onclick="newRegistration()">
-            📝 Nuevo Registro
-          </button>
-          <button class="btn btn-success" onclick="goHome()">
-            🏠 Volver al Inicio
-          </button>
-        </div>
-      </div>
     </div>
-
-    <script>
-      function newRegistration() {
-        // Resetear el sistema y comenzar nuevo registro
-        fetch("/reset_system")
-          .then(() => {
-            window.location.href = "/registro";
-          })
-          .catch((error) => {
-            console.error("Error al resetear sistema:", error);
-            window.location.href = "/registro";
-          });
-      }
-
-      function goHome() {
-        window.location.href = "/";
-      }
-
-      function uploadEvidence() {
-        const attendanceId = '{{ user_data.id if user_data else "" }}';
-        if (attendanceId) {
-          window.location.href = "/evidencia/" + attendanceId;
-        }
-      }
-    </script>
-  </body>
-</html>
+</div>
+{% endblock %}

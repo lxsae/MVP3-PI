@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Sistema de Asistencia{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <div class="background-glow"></div>
+    <div class="app-container">
+        {% if current_user.is_authenticated %}
+        <nav class="navbar glass-panel">
+            <div class="nav-brand" onclick="window.location.href='{{ url_for('index') }}'" style="cursor: pointer;">
+                <i class="fas fa-fingerprint"></i>
+                <span>Asistencia<span class="text-highlight">Pro</span></span>
+            </div>
+            <div class="nav-user">
+                <div class="user-details">
+                    <span class="user-name">{{ current_user.first_name }} {{ current_user.last_name }}</span>
+                    <span class="user-role badge badge-{{ current_user.role }}">{{ current_user.role|title }}</span>
+                </div>
+                <a href="{{ url_for('logout') }}" class="btn-icon" title="Cerrar Sesión">
+                    <i class="fas fa-sign-out-alt"></i>
+                </a>
+            </div>
+        </nav>
+        {% endif %}
+
+        <main class="main-content">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="flash-messages">
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }} glass-panel">
+                                <i class="fas fa-info-circle"></i>
+                                <span>{{ message }}</span>
+                                <button class="close-alert" onclick="this.parentElement.remove()">&times;</button>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+            {% block content %}{% endblock %}
+        </main>
+
+        <footer class="footer">
+            <p>Sistema de Control de Asistencia &copy; 2025</p>
+        </footer>
+    </div>
+
+    <script>
+        // Global scripts
+        document.addEventListener('DOMContentLoaded', () => {
+            // Fade in alerts
+            const alerts = document.querySelectorAll('.alert');
+            alerts.forEach(alert => {
+                setTimeout(() => {
+                    alert.style.opacity = '1';
+                    alert.style.transform = 'translateY(0)';
+                }, 100);
+            });
+        });
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>
