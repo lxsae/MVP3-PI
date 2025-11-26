@@ -394,6 +394,7 @@
                   🎤 Voz
                 </button>
               </div>
+              <div class="field-help">Diga: "Mi nombre es [su nombre]"</div>
             </div>
 
             <div class="form-group">
@@ -415,20 +416,32 @@
                   🎤 Voz
                 </button>
               </div>
+              <div class="field-help">Diga: "Mi apellido es [su apellido]"</div>
             </div>
           </div>
 
           <div class="form-row">
             <div class="form-group">
               <label for="edad">Edad</label>
-              <input
-                type="number"
-                id="edad"
-                name="edad"
-                min="1"
-                max="120"
-                placeholder="Ej: 25"
-              />
+              <div class="input-with-voice">
+                <input
+                  type="number"
+                  id="edad"
+                  name="edad"
+                  min="1"
+                  max="120"
+                  placeholder="Ej: 25"
+                />
+                <button
+                  type="button"
+                  class="btn btn-voice"
+                  onclick="startVoiceInput('edad')"
+                  id="edadVoiceBtn"
+                >
+                  🎤 Voz
+                </button>
+              </div>
+              <div class="field-help">Diga: "Tengo [su edad] años"</div>
             </div>
 
             <div class="form-group">
@@ -445,23 +458,45 @@
 
           <div class="form-group">
             <label for="correo">Correo Electrónico</label>
-            <input
-              type="email"
-              id="correo"
-              name="correo"
-              placeholder="Ej: juan.perez@email.com"
-            />
+            <div class="input-with-voice">
+              <input
+                type="email"
+                id="correo"
+                name="correo"
+                placeholder="Ej: juan.perez@email.com"
+              />
+              <button
+                type="button"
+                class="btn btn-voice"
+                onclick="startVoiceInput('correo')"
+                id="correoVoiceBtn"
+              >
+                🎤 Voz
+              </button>
+            </div>
+            <div class="field-help">Diga: "Mi correo es [su email]"</div>
           </div>
 
           <div class="form-group">
             <label for="celular">Celular</label>
-            <input
-              type="tel"
-              id="celular"
-              name="celular"
-              pattern="[0-9]{9,15}"
-              placeholder="Ej: 987654321"
-            />
+            <div class="input-with-voice">
+              <input
+                type="tel"
+                id="celular"
+                name="celular"
+                pattern="[0-9]{9,15}"
+                placeholder="Ej: 987654321"
+              />
+              <button
+                type="button"
+                class="btn btn-voice"
+                onclick="startVoiceInput('celular')"
+                id="celularVoiceBtn"
+              >
+                🎤 Voz
+              </button>
+            </div>
+            <div class="field-help">Diga: "Mi celular es [su número]"</div>
           </div>
 
           <div class="voice-controls">
@@ -615,69 +650,29 @@
         }
       });
 
-      let mediaRecorder = null;
-      let audioChunks = [];
-      let isRecording = false;
-
       function startVoiceInput(fieldId) {
-        if (isRecording) {
-            stopRecording();
+        // Crear elemento de entrada de audio
+        const input = document.createElement("input");
+        input.type = "file";
+        input.accept = "audio/*, .wav, .mp3, .m4a";
+        input.capture = "microphone";
+
+        input.onchange = function (e) {
+          const file = e.target.files[0];
+          if (!file) return;
+
+          // Validar tipo de archivo
+          if (!file.type.startsWith("audio/")) {
+            showModal(
+              "❌ Error",
+              "Por favor seleccione un archivo de audio válido.",
+              "error"
+            );
             return;
-        }
+          }
 
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-            showModal("❌ Error", "Su navegador no soporta grabación de audio.", "error");
-            return;
-        }
-
-        navigator.mediaDevices.getUserMedia({ audio: true })
-            .then(stream => {
-                mediaRecorder = new MediaRecorder(stream);
-                audioChunks = [];
-                currentRecordingField = fieldId;
-                isRecording = true;
-
-                // Actualizar interfaz
-                showRecordingIndicator(fieldId);
-                const button = document.getElementById(fieldId + "VoiceBtn");
-                if (button) {
-                    button.innerHTML = "⏹️ Parar";
-                    button.classList.add("recording");
-                    button.disabled = false; // Permitir hacer clic para parar
-                }
-
-                mediaRecorder.ondataavailable = event => {
-                    audioChunks.push(event.data);
-                };
-
-                mediaRecorder.onstop = () => {
-                    const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
-                    sendAudioToServer(audioBlob, fieldId);
-                    
-                    // Limpiar tracks
-                    stream.getTracks().forEach(track => track.stop());
-                    isRecording = false;
-                };
-
-                mediaRecorder.start();
-            })
-            .catch(err => {
-                console.error("Error accediendo al micrófono:", err);
-                showModal("❌ Error", "No se pudo acceder al micrófono: " + err.message, "error");
-            });
-      }
-
-      function stopRecording() {
-        if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-            mediaRecorder.stop();
-            hideRecordingIndicator(); // Se llama aquí para restaurar UI inmediatamente
-        }
-      }
-
-      function sendAudioToServer(audioBlob, fieldId) {
-          console.log("🎤 Enviando audio al servidor...", audioBlob.size);
           // Validar tamaño (max 10MB)
-          if (audioBlob.size > 10 * 1024 * 1024) {
+          if (file.size > 10 * 1024 * 1024) {
             showModal(
               "❌ Error",
               "El archivo de audio es demasiado grande. Máximo 10MB.",
@@ -686,30 +681,20 @@
             return;
           }
 
-          // Mostrar indicador de procesamiento
-          // showRecordingIndicator(fieldId); // Ya mostrado, pero cambiamos texto si es necesario
-           const statusElement = document.getElementById("recordingStatus");
-           if(statusElement) {
-               statusElement.innerHTML = `
-                <strong>🎤 Procesando audio con AssemblyAI...</strong>
-                <p>Transcribiendo su audio, por favor espere.</p>
-            `;
-           }
+          // Mostrar indicador de grabación
+          showRecordingIndicator(fieldId);
+          currentRecordingField = fieldId;
 
           const formData = new FormData();
-          formData.append("audio", audioBlob, "recording.wav");
+          formData.append("audio", file);
           formData.append("field", fieldId);
 
           fetch("/api/transcribe", {
             method: "POST",
             body: formData,
           })
-            .then((response) => {
-                console.log("Respuesta servidor:", response.status);
-                return response.json();
-            })
+            .then((response) => response.json())
             .then((data) => {
-              console.log("Datos JSON:", data);
               hideRecordingIndicator();
 
               if (data.success) {
@@ -734,7 +719,6 @@
                   );
                 }
               } else {
-                console.error("Error data:", data);
                 showRecordingStatus(
                   `❌ Error: ${data.error || "Intente nuevamente"}`,
                   "error"
@@ -742,13 +726,16 @@
               }
             })
             .catch((error) => {
-              console.error("Fetch error:", error);
               hideRecordingIndicator();
               showRecordingStatus(
                 `❌ Error de conexión: ${error.message}`,
                 "error"
               );
             });
+        };
+
+        // Mostrar diálogo de selección de archivo
+        input.click();
       }
 
       function showRecordingIndicator(fieldId) {
@@ -756,9 +743,11 @@
         const statusElement = document.getElementById("recordingStatus");
         statusElement.classList.add("visible");
         statusElement.innerHTML = `
-                <strong>🎤 Grabando...</strong>
-                <p>Hable ahora para rellenar el campo.</p>
-                <button type="button" class="btn btn-voice recording" onclick="stopRecording()" style="margin-top:10px;">⏹️ Detener Grabación</button>
+                <strong>🎤 Procesando audio con AssemblyAI...</strong>
+                <p>Transcribiendo su audio, por favor espere.</p>
+                <div style="margin-top: 10px; font-size: 0.9em;">
+                    ⏳ Esto puede tomar unos segundos...
+                </div>
             `;
 
         // Resaltar campo y botón
@@ -767,11 +756,17 @@
 
         if (field) {
           field.classList.add("recording");
-          field.placeholder = "🎤 Escuchando...";
+          field.placeholder = "⏳ Procesando audio...";
         }
 
-        // Deshabilitar otros botones de voz para evitar múltiples grabaciones
-        disableAllVoiceButtons(true, fieldId); // Pasamos fieldId para NO deshabilitar el actual
+        if (button) {
+          button.classList.add("recording");
+          button.innerHTML = "⏳ Procesando...";
+          button.disabled = true;
+        }
+
+        // Deshabilitar otros botones de voz
+        disableAllVoiceButtons(true);
       }
 
       function hideRecordingIndicator() {
@@ -803,30 +798,9 @@
         });
 
         currentRecordingField = null;
-        isRecording = false; // Reset recording flag
         disableAllVoiceButtons(false);
       }
-      
-      function disableAllVoiceButtons(disabled, exceptFieldId = null) {
-        const voiceButtons = document.querySelectorAll(".btn-voice");
-        voiceButtons.forEach((button) => {
-          // Si es el botón de "Detener Grabación" dentro del status, ignorarlo
-          if (button.innerHTML.includes("Detener")) return;
 
-           // Si es el botón que estamos usando para grabar, NO lo deshabilitamos (si disabled es true)
-           if (exceptFieldId && button.id === exceptFieldId + "VoiceBtn") {
-               return;
-           }
-           
-          if (disabled) {
-            button.disabled = true;
-            button.style.opacity = "0.6";
-          } else {
-            button.disabled = false;
-            button.style.opacity = "1";
-          }
-        });
-      }
       function showRecordingStatus(message, type = "info") {
         const statusElement = document.getElementById("recordingStatus");
         statusElement.classList.add("visible", type);
