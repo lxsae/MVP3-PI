@@ -301,7 +301,7 @@
           const needsProfileCompletion =
             document.body.dataset.needsProfileCompletion === "true";
 
-          if (needsProfileCompletion) {
+          if (true) {  // Forzar siempre ir al formulario
             window.location.href = "/formulario";
           } else {
             // Direct check-in for users with complete profiles

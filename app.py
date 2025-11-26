@@ -631,22 +631,16 @@ def detectar_rostro():
 @app.route('/formulario')
 @login_required
 def formulario():
-    """Formulario de datos personales - Solo para completar perfil inicial"""
+    """Formulario de datos personales"""
     global system_state
     if face_detected:
         system_state = SystemState.FACE_DETECTED
         assemblyai_enabled = assemblyai_client.enabled
-
-        # Check if user has complete profile
-        has_complete_profile = (
-            current_user.first_name and
-            current_user.last_name and
-            current_user.email and
-            current_user.department and
-            current_user.position
-        )
-
-        return render_template('formulario.html',
+        
+        # Forzar siempre mostrar el formulario para demostración
+        has_complete_profile = False  # Cambiado para permitir probar siempre
+        
+        return render_template('formulario.html', 
                              assemblyai_enabled=assemblyai_enabled,
                              has_complete_profile=has_complete_profile)
     else:
