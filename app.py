@@ -1,5 +1,5 @@
 
-from flask import Flask, render_template, Response, jsonify, request, redirect, url_for, flash, send_from_directory
+from flask import Flask, render_template, Response, jsonify, request, redirect, url_for, flash, send_from_directory, session
 import cv2
 import threading
 import time
@@ -539,6 +539,9 @@ attendance_manager = AttendanceManager()
 assemblyai_client = SimpleTranscriber(ASSEMBLYAI_API_KEY)
 voice_manager = VoiceFormManager(assemblyai_client)
 
+# Log database info
+print(f"🔌 Conectando a base de datos: {app.config['SQLALCHEMY_DATABASE_URI'].split('@')[-1] if '@' in app.config['SQLALCHEMY_DATABASE_URI'] else 'SQLite Local'}")
+
 # Variables globales
 current_frame = None
 face_detected = False
@@ -651,22 +654,41 @@ def completado():
     global system_state
     system_state = SystemState.COMPLETED
 
-    # Get the latest attendance for current user
+    # Intentar recuperar registro desde la sesión (más robusto)
+    attendance_id = session.get('last_attendance_id')
+    current_record = None
+    
+    if attendance_id:
+        current_record = Attendance.query.get(attendance_id)
+
+    # Si no hay registro en sesión, buscar el último del usuario
     today = date.today()
     latest_attendance = Attendance.query.filter_by(user_id=current_user.id, date=today).order_by(Attendance.created_at.desc()).first()
+    
+    if not current_record:
+        current_record = latest_attendance
 
-    # Si no hay registro reciente, usar datos del usuario actual para evitar error 500
-    if not last_registered_user:
-        safe_user_data = {
+    # Construir datos para la vista
+    if current_record:
+        user_data = {
+            'id': current_record.id,
+            'date': current_record.date.strftime('%Y-%m-%d'),
+            'check_in_time': current_record.check_in_time.strftime('%H:%M:%S') if current_record.check_in_time else None,
+            'check_out_time': current_record.check_out_time.strftime('%H:%M:%S') if current_record.check_out_time else None,
+            'status': current_record.status,
+            'user': current_record.user.full_name,
+            'total_hours': current_record.total_hours
+        }
+    else:
+        # Fallback si falla todo
+        user_data = {
             'user': current_user.full_name,
             'date': today.strftime('%Y-%m-%d'),
             'check_in_time': datetime.now().strftime('%H:%M:%S'),
             'status': 'present'
         }
-    else:
-        safe_user_data = last_registered_user
 
-    return render_template('completado.html', user_data=safe_user_data, attendance=latest_attendance)
+    return render_template('completado.html', user_data=user_data, attendance=current_record)
 
 import base64
 
@@ -752,7 +774,11 @@ def api_register():
         time.sleep(1)  # Pequeña pausa para efecto visual
 
         record = AttendanceManager.register_attendance(current_user.id)
-        last_registered_user = {
+        
+        # Guardar ID en sesión para recuperar en /completado
+        session['last_attendance_id'] = record.id
+        
+        user_response_data = {
             'id': record.id,
             'date': record.date.strftime('%Y-%m-%d'),
             'check_in_time': record.check_in_time.strftime('%H:%M:%S') if record.check_in_time else None,
@@ -761,13 +787,16 @@ def api_register():
             'user': current_user.full_name,
             'total_hours': record.total_hours
         }
+        
+        # Mantener compatibilidad con legacy global por si acaso
+        last_registered_user = user_response_data
         system_state = SystemState.COMPLETED
 
         action = 'check_out' if record.check_out_time else 'check_in'
         return jsonify({
             'success': True,
             'message': f'{"Check-out" if record.check_out_time else "Check-in"} registrado correctamente',
-            'record': last_registered_user,
+            'record': user_response_data,
             'action': action,
             'redirect_url': url_for('evidencia', attendance_id=record.id) if not record.check_out_time else None
         })
