@@ -208,7 +208,8 @@
 
       <div class="content">
         <div class="video-container">
-          <img src="{{ url_for('video_feed') }}" alt="Video Feed" />
+          <video id="videoElement" autoplay playsinline style="width: 100%; height: auto; border-radius: 10px; display: block;"></video>
+          <canvas id="canvasElement" style="display: none;"></canvas>
         </div>
 
         <div class="instructions">
@@ -261,43 +262,100 @@
       let faceDetected = false;
       let checkTimeout;
       let isPolling = true;
+      let videoStream = null;
+      let detectionInterval = null;
 
-      function checkFaceStatus() {
-        if (!isPolling) return;
+      // Initialize camera
+      async function initCamera() {
+        try {
+          const video = document.getElementById("videoElement");
+          
+          // Request camera access (rear camera preferred on mobile)
+          const constraints = {
+            video: {
+              facingMode: "user", // Front camera for face detection
+              width: { ideal: 640 },
+              height: { ideal: 480 }
+            }
+          };
+          
+          videoStream = await navigator.mediaDevices.getUserMedia(constraints);
+          video.srcObject = videoStream;
+          
+          console.log("✅ Cámara inicializada correctamente");
+          
+          // Start face detection after camera is ready
+          video.onloadedmetadata = () => {
+            startFaceDetection();
+          };
+          
+        } catch (error) {
+          console.error("❌ Error accediendo a la cámara:", error);
+          alert("No se pudo acceder a la cámara. Por favor, verifica los permisos.");
+        }
+      }
 
-        fetch("/api/face_status")
-          .then((response) => response.json())
-          .then((data) => {
+      function startFaceDetection() {
+        // Send frames to server for face detection every 2 seconds
+        detectionInterval = setInterval(() => {
+          if (!isPolling) return;
+          captureAndDetectFace();
+        }, 2000);
+      }
+
+      function captureAndDetectFace() {
+        const video = document.getElementById("videoElement");
+        const canvas = document.getElementById("canvasElement");
+        const context = canvas.getContext("2d");
+        
+        // Set canvas size to match video
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        
+        // Draw current frame to canvas
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        
+        // Convert canvas to blob and send to server
+        canvas.toBlob((blob) => {
+          if (!blob) return;
+          
+          const formData = new FormData();
+          formData.append("image", blob, "frame.jpg");
+          
+          fetch("/api/detect_face", {
+            method: "POST",
+            body: formData
+          })
+          .then(response => response.json())
+          .then(data => {
             faceDetected = data.face_detected;
-
-            const indicator = document.getElementById("statusIndicator");
-            const statusText = document.getElementById("statusText");
-            const statusMessage = document.getElementById("statusMessage");
-            const continueBtn = document.getElementById("continueBtn");
-
-            if (faceDetected) {
-              indicator.classList.add("detected");
-              statusText.textContent = "Rostro Detectado";
-              statusMessage.textContent = "✓ ¡Rostro detectado correctamente!";
-              statusMessage.style.color = "#2ed573";
-              continueBtn.disabled = false;
-            } else {
-              indicator.classList.remove("detected");
-              statusText.textContent = "No detectado";
-              statusMessage.textContent = "Esperando detección de rostro...";
-              statusMessage.style.color = "white";
-              continueBtn.disabled = true;
-            }
+            updateUI(data);
           })
-          .catch((error) => {
-            console.error("Error checking face status:", error);
-          })
-          .finally(() => {
-            if (isPolling) {
-              // Wait 2 seconds before next check to avoid overloading the server
-              checkTimeout = setTimeout(checkFaceStatus, 2000);
-            }
+          .catch(error => {
+            console.error("Error en detección:", error);
           });
+        }, "image/jpeg", 0.8);
+      }
+
+      function updateUI(data) {
+        const indicator = document.getElementById("statusIndicator");
+        const statusText = document.getElementById("statusText");
+        const statusMessage = document.getElementById("statusMessage");
+        const continueBtn = document.getElementById("continueBtn");
+
+        if (data.face_detected) {
+          indicator.classList.add("detected");
+          statusText.textContent = "Rostro Detectado";
+          statusMessage.textContent = "✓ ¡Rostro detectado correctamente!";
+          statusMessage.style.color = "#2ed573";
+          continueBtn.disabled = false;
+        } else {
+          indicator.classList.remove("detected");
+          statusText.textContent = "No detectado";
+          statusMessage.textContent = "Esperando detección de rostro...";
+          statusMessage.style.color = "white";
+          continueBtn.disabled = true;
+        }
       }
 
       function continueToNext() {
@@ -352,13 +410,16 @@
         window.location.href = "/registro";
       }
 
-      // Iniciar verificación
-      checkFaceStatus();
+      // Iniciar cámara al cargar la página
+      initCamera();
 
-      // Limpiar timeout al salir de la página
+      // Limpiar recursos al salir de la página
       window.addEventListener("beforeunload", () => {
         isPolling = false;
-        if (checkTimeout) clearTimeout(checkTimeout);
+        if (detectionInterval) clearInterval(detectionInterval);
+        if (videoStream) {
+          videoStream.getTracks().forEach(track => track.stop());
+        }
       });
     </script>
   </body>

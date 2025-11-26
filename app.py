@@ -692,6 +692,39 @@ def api_face_status():
         'system_state': system_state
     })
 
+@app.route('/api/detect_face', methods=['POST'])
+def api_detect_face():
+    """API para detectar rostro desde imagen del cliente"""
+    global face_detected
+    
+    try:
+        if 'image' not in request.files:
+            return jsonify({'face_detected': False, 'error': 'No image provided'})
+        
+        image_file = request.files['image']
+        
+        # Read image from uploaded file
+        image_bytes = image_file.read()
+        nparr = np.frombuffer(image_bytes, np.uint8)
+        frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        
+        if frame is None:
+            return jsonify({'face_detected': False, 'error': 'Invalid image'})
+        
+        # Detect face using face detector
+        _, detected = face_detector.detect_face(frame)
+        face_detected = detected
+        
+        return jsonify({
+            'face_detected': detected,
+            'system_state': system_state,
+            'timestamp': datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        print(f"Error en detección de rostro: {e}")
+        return jsonify({'face_detected': False, 'error': str(e)})
+
 @app.route('/api/register', methods=['POST'])
 @login_required
 def api_register():
