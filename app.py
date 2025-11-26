@@ -545,9 +545,17 @@ assemblyai_client = SimpleTranscriber(ASSEMBLYAI_API_KEY)
 voice_manager = VoiceFormManager(assemblyai_client)
 
 # Variables globales
-current_frame = None
+current_frame = camera.create_test_frame()
 face_detected = False
 frame_lock = threading.Lock()
+
+# Iniciar thread de procesamiento automáticamente al importar
+# Esto asegura que funcione con Gunicorn y otros servidores WSGI
+if not os.environ.get('WERKZEUG_RUN_MAIN') or os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
+    # Evitar iniciar thread doble en modo debug de Flask
+    processing_thread = threading.Thread(target=process_frames, daemon=True)
+    processing_thread.start()
+    print("✅ Thread de procesamiento de video iniciado")
 
 def process_frames():
     """Procesamiento de frames en segundo plano"""
@@ -1225,10 +1233,6 @@ if __name__ == '__main__':
     if not create_tables():
         print("❌ No se pudo conectar a la base de datos. Revisa la configuración.")
         exit(1)
-
-    # Iniciar procesamiento de frames
-    processing_thread = threading.Thread(target=process_frames, daemon=True)
-    processing_thread.start()
 
     db_type = "Supabase PostgreSQL" if os.getenv('SUPABASE_DATABASE_URL') else "SQLite"
     print(f"🚀 Sistema de Control de Asistencia Mejorado con {db_type}")
