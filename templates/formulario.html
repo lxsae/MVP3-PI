@@ -394,7 +394,6 @@
                   🎤 Voz
                 </button>
               </div>
-              <div class="field-help">Diga: "Mi nombre es [su nombre]"</div>
             </div>
 
             <div class="form-group">
@@ -416,32 +415,20 @@
                   🎤 Voz
                 </button>
               </div>
-              <div class="field-help">Diga: "Mi apellido es [su apellido]"</div>
             </div>
           </div>
 
           <div class="form-row">
             <div class="form-group">
               <label for="edad">Edad</label>
-              <div class="input-with-voice">
-                <input
-                  type="number"
-                  id="edad"
-                  name="edad"
-                  min="1"
-                  max="120"
-                  placeholder="Ej: 25"
-                />
-                <button
-                  type="button"
-                  class="btn btn-voice"
-                  onclick="startVoiceInput('edad')"
-                  id="edadVoiceBtn"
-                >
-                  🎤 Voz
-                </button>
-              </div>
-              <div class="field-help">Diga: "Tengo [su edad] años"</div>
+              <input
+                type="number"
+                id="edad"
+                name="edad"
+                min="1"
+                max="120"
+                placeholder="Ej: 25"
+              />
             </div>
 
             <div class="form-group">
@@ -458,45 +445,23 @@
 
           <div class="form-group">
             <label for="correo">Correo Electrónico</label>
-            <div class="input-with-voice">
-              <input
-                type="email"
-                id="correo"
-                name="correo"
-                placeholder="Ej: juan.perez@email.com"
-              />
-              <button
-                type="button"
-                class="btn btn-voice"
-                onclick="startVoiceInput('correo')"
-                id="correoVoiceBtn"
-              >
-                🎤 Voz
-              </button>
-            </div>
-            <div class="field-help">Diga: "Mi correo es [su email]"</div>
+            <input
+              type="email"
+              id="correo"
+              name="correo"
+              placeholder="Ej: juan.perez@email.com"
+            />
           </div>
 
           <div class="form-group">
             <label for="celular">Celular</label>
-            <div class="input-with-voice">
-              <input
-                type="tel"
-                id="celular"
-                name="celular"
-                pattern="[0-9]{9,15}"
-                placeholder="Ej: 987654321"
-              />
-              <button
-                type="button"
-                class="btn btn-voice"
-                onclick="startVoiceInput('celular')"
-                id="celularVoiceBtn"
-              >
-                🎤 Voz
-              </button>
-            </div>
-            <div class="field-help">Diga: "Mi celular es [su número]"</div>
+            <input
+              type="tel"
+              id="celular"
+              name="celular"
+              pattern="[0-9]{9,15}"
+              placeholder="Ej: 987654321"
+            />
           </div>
 
           <div class="voice-controls">
