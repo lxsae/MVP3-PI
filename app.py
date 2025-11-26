@@ -615,9 +615,7 @@ def detectar_rostro():
     global system_state
     system_state = SystemState.DETECTING_FACE
 
-    # Inicializar cámara si no está activa
-    if not camera.cap or not camera.cap.isOpened():
-        camera.initialize_camera()
+    # Ya no inicializamos la cámara del servidor aquí porque usamos la del cliente
 
     # Check if user needs to complete profile
     needs_profile_completion = not (
