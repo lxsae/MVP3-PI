@@ -208,7 +208,9 @@
 
       <div class="content">
         <div class="video-container">
-          <img src="{{ url_for('video_feed') }}" alt="Video Feed" />
+          <video id="clientVideo" autoplay playsinline style="width: 100%; height: auto; border-radius: 10px; display: none; transform: scaleX(-1);"></video>
+          <canvas id="clientCanvas" style="display: none;"></canvas>
+          <img id="serverVideo" src="{{ url_for('video_feed') }}" alt="Video Feed" />
         </div>
 
         <div class="instructions">
@@ -258,6 +260,53 @@
     </div>
 
     <script>
+      // Client-side camera logic
+      const video = document.getElementById('clientVideo');
+      const canvas = document.getElementById('clientCanvas');
+      const serverVideo = document.getElementById('serverVideo');
+      
+      async function startCamera() {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+          video.srcObject = stream;
+          video.style.display = 'block';
+          serverVideo.style.display = 'none';
+          
+          // Start sending frames periodically
+          setInterval(sendFrame, 1000);
+        } catch (err) {
+          console.error("Error accessing camera:", err);
+          // Fallback to server video (simulation/error) remains visible
+        }
+      }
+      
+      function sendFrame() {
+        if (video.style.display === 'none') return;
+        
+        const context = canvas.getContext('2d');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        
+        canvas.toBlob(blob => {
+          const formData = new FormData();
+          formData.append('frame', blob, 'frame.jpg');
+          
+          fetch('/api/process_frame', {
+            method: 'POST',
+            body: formData
+          })
+          .then(response => response.json())
+          .then(data => {
+            console.log("Frame processed:", data);
+          })
+          .catch(err => console.error("Error sending frame:", err));
+        }, 'image/jpeg', 0.8);
+      }
+      
+      // Start camera when page loads
+      startCamera();
+
       let faceDetected = false;
       let checkInterval;
 

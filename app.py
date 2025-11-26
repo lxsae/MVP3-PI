@@ -548,13 +548,19 @@ voice_manager = VoiceFormManager(assemblyai_client)
 current_frame = None
 face_detected = False
 frame_lock = threading.Lock()
+last_api_detection_time = 0
 
 def process_frames():
     """Procesamiento de frames en segundo plano"""
-    global current_frame, face_detected
+    global current_frame, face_detected, last_api_detection_time
     
     while True:
         try:
+            # Si se está usando detección por API (web), no usar cámara local
+            if time.time() - last_api_detection_time < 5:
+                time.sleep(1)
+                continue
+
             frame = camera.get_frame()
             
             if system_state == SystemState.DETECTING_FACE:
@@ -683,6 +689,38 @@ def api_face_status():
         'face_detected': face_detected,
         'system_state': system_state
     })
+
+@app.route('/api/process_frame', methods=['POST'])
+def process_client_frame():
+    """Procesar frame enviado desde el cliente"""
+    global face_detected, system_state, last_api_detection_time
+    
+    if 'frame' not in request.files:
+        return jsonify({'error': 'No frame provided'})
+    
+    try:
+        file = request.files['frame']
+        # Convert string data to numpy array
+        npimg = np.frombuffer(file.read(), np.uint8)
+        # Convert numpy array to image
+        frame = cv2.imdecode(npimg, cv2.IMREAD_COLOR)
+        
+        processed_frame, face_found = face_detector.detect_face(frame)
+        
+        # Actualizar estado global
+        face_detected = face_found
+        last_api_detection_time = time.time()
+        
+        if face_found:
+            system_state = SystemState.FACE_DETECTED
+        
+        return jsonify({
+            'success': True,
+            'face_detected': face_found
+        })
+    except Exception as e:
+        print(f"Error processing frame: {e}")
+        return jsonify({'success': False, 'error': str(e)})
 
 @app.route('/api/register', methods=['POST'])
 @login_required
