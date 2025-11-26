@@ -655,7 +655,18 @@ def completado():
     today = date.today()
     latest_attendance = Attendance.query.filter_by(user_id=current_user.id, date=today).order_by(Attendance.created_at.desc()).first()
 
-    return render_template('completado.html', user_data=last_registered_user, attendance=latest_attendance)
+    # Si no hay registro reciente, usar datos del usuario actual para evitar error 500
+    if not last_registered_user:
+        safe_user_data = {
+            'user': current_user.full_name,
+            'date': today.strftime('%Y-%m-%d'),
+            'check_in_time': datetime.now().strftime('%H:%M:%S'),
+            'status': 'present'
+        }
+    else:
+        safe_user_data = last_registered_user
+
+    return render_template('completado.html', user_data=safe_user_data, attendance=latest_attendance)
 
 import base64
 
