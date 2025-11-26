@@ -659,11 +659,37 @@ def completado():
 
     return render_template('completado.html', user_data=last_registered_user, attendance=latest_attendance)
 
-# API endpoints
-@app.route('/video_feed')
-def video_feed():
-    return Response(generate_frames(),
-                    mimetype='multipart/x-mixed-replace; boundary=frame')
+import base64
+
+@app.route('/api/process_frame', methods=['POST'])
+def process_frame():
+    """Procesar frame enviado desde el cliente"""
+    global face_detected
+    try:
+        data = request.json
+        if 'image' not in data:
+            return jsonify({'error': 'No image provided'}), 400
+
+        # Decodificar imagen base64
+        image_data = data['image'].split(',')[1]
+        image_bytes = base64.b64decode(image_data)
+        
+        # Convertir a array numpy para OpenCV
+        nparr = np.frombuffer(image_bytes, np.uint8)
+        frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        
+        if frame is None:
+            return jsonify({'error': 'Invalid image'}), 400
+
+        # Detectar rostro
+        _, face_found = face_detector.detect_face(frame)
+        face_detected = face_found
+        
+        return jsonify({'face_detected': face_detected})
+        
+    except Exception as e:
+        print(f"Error processing frame: {e}")
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/face_status')
 def api_face_status():
