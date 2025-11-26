@@ -558,9 +558,10 @@ def process_frames():
             frame = camera.get_frame()
             
             if system_state == SystemState.DETECTING_FACE:
-                # Solo detectar rostros cuando estamos en modo detección
-                processed_frame, face_found = face_detector.detect_face(frame)
-                face_detected = face_found
+                # Solo detectar rostros cuando estamos en modo detección y tenemos cámara real
+                if camera.cap and camera.cap.isOpened():
+                    processed_frame, face_found = face_detector.detect_face(frame)
+                    face_detected = face_found
             else:
                 processed_frame = frame
                 # Mostrar información del estado
@@ -757,7 +758,7 @@ def api_register():
 
         # Registrar asistencia usando el usuario actual
         system_state = SystemState.REGISTERING
-        time.sleep(1)  # Pequeña pausa para efecto visual
+        # time.sleep(1)  # Removed sleep for performance
 
         record = AttendanceManager.register_attendance(current_user.id)
         last_registered_user = {

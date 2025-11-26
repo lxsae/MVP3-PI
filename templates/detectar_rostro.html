@@ -289,9 +289,8 @@
           video.style.display = 'block';
           serverVideo.style.display = 'none';
           
-          // Start sending frames for detection in background
-          // Optimized: Send every 500ms instead of continuous stream
-          frameSendingInterval = setInterval(sendFrameForDetection, 500);
+          // Optimized: Send frames recursively to prevent network congestion
+          sendFrameForDetection();
           
         } catch (err) {
           console.error("Error accessing camera:", err);
@@ -306,18 +305,22 @@
         if (!stream || video.style.display === 'none') return;
         
         const context = canvas.getContext('2d');
-        // Reduce resolution for faster transmission (320x240 is enough for face detection)
-        canvas.width = 320;
-        canvas.height = 240;
+        // Ultra-low resolution for maximum speed (Haar cascades work fine on small images)
+        canvas.width = 200;
+        canvas.height = 150;
         context.drawImage(video, 0, 0, canvas.width, canvas.height);
         
         canvas.toBlob(blob => {
-          if (!blob) return;
+          if (!blob) {
+             // Retry in 100ms if blob failed
+             setTimeout(sendFrameForDetection, 100);
+             return;
+          }
           
           const formData = new FormData();
           formData.append('frame', blob, 'frame.jpg');
           
-          // Send to server without blocking UI
+          // Send to server
           fetch('/api/process_frame', {
             method: 'POST',
             body: formData
@@ -325,13 +328,21 @@
           .then(response => response.json())
           .then(data => {
             if (data.face_detected) {
-               // Update UI immediately if face found
                faceDetected = true;
                updateStatus(true);
+               // Slow down detection once face is found to save resources
+               setTimeout(sendFrameForDetection, 1000);
+            } else {
+               // If no face, check again immediately (latency limited)
+               setTimeout(sendFrameForDetection, 100); 
             }
           })
-          .catch(err => console.log("Frame skip")); // Ignore network errors to keep smooth
-        }, 'image/jpeg', 0.6); // Low quality JPEG for speed
+          .catch(err => {
+            console.log("Network glitch, retrying...", err);
+            // Retry after short delay on error
+            setTimeout(sendFrameForDetection, 500);
+          });
+        }, 'image/jpeg', 0.5); // Medium-low quality JPEG
       }
 
       // Start camera on load
