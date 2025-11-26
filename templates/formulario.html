@@ -710,6 +710,7 @@
       }
 
       function sendAudioToServer(audioBlob, fieldId) {
+          console.log("🎤 Enviando audio al servidor...", audioBlob.size);
           // Validar tamaño (max 10MB)
           if (audioBlob.size > 10 * 1024 * 1024) {
             showModal(
@@ -738,8 +739,12 @@
             method: "POST",
             body: formData,
           })
-            .then((response) => response.json())
+            .then((response) => {
+                console.log("Respuesta servidor:", response.status);
+                return response.json();
+            })
             .then((data) => {
+              console.log("Datos JSON:", data);
               hideRecordingIndicator();
 
               if (data.success) {
@@ -764,6 +769,7 @@
                   );
                 }
               } else {
+                console.error("Error data:", data);
                 showRecordingStatus(
                   `❌ Error: ${data.error || "Intente nuevamente"}`,
                   "error"
@@ -771,6 +777,7 @@
               }
             })
             .catch((error) => {
+              console.error("Fetch error:", error);
               hideRecordingIndicator();
               showRecordingStatus(
                 `❌ Error de conexión: ${error.message}`,
@@ -855,6 +862,7 @@
           }
         });
       }
+      function showRecordingStatus(message, type = "info") {
         const statusElement = document.getElementById("recordingStatus");
         statusElement.classList.add("visible", type);
         statusElement.innerHTML = `<strong>${message}</strong>`;
