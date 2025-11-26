@@ -684,6 +684,38 @@ def api_face_status():
         'system_state': system_state
     })
 
+@app.route('/api/process_frame', methods=['POST'])
+def process_client_frame():
+    """Procesar frame enviado desde el cliente"""
+    global face_detected, system_state
+    
+    if 'frame' not in request.files:
+        return jsonify({'error': 'No frame provided'})
+    
+    try:
+        file = request.files['frame']
+        # Convert string data to numpy array
+        npimg = np.frombuffer(file.read(), np.uint8)
+        # Convert numpy array to image
+        frame = cv2.imdecode(npimg, cv2.IMREAD_COLOR)
+        
+        # Detectar rostro
+        processed_frame, face_found = face_detector.detect_face(frame)
+        
+        # Actualizar estado global
+        face_detected = face_found
+        
+        if face_found:
+            system_state = SystemState.FACE_DETECTED
+        
+        return jsonify({
+            'success': True,
+            'face_detected': face_found
+        })
+    except Exception as e:
+        # Silently fail for performance on errors
+        return jsonify({'success': False, 'error': str(e)})
+
 @app.route('/api/register', methods=['POST'])
 @login_required
 def api_register():

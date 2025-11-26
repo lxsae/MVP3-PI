@@ -208,8 +208,12 @@
 
       <div class="content">
         <div class="video-container">
-          <!-- Client-side video logic removed as requested, reverting to server-side stream -->
-          <img src="{{ url_for('video_feed') }}" alt="Video Feed" />
+          <!-- Video element for local camera stream (instant feedback) -->
+          <video id="clientVideo" autoplay playsinline muted style="width: 100%; height: auto; border-radius: 10px; transform: scaleX(-1); display: none;"></video>
+          <!-- Canvas for capturing frames to send to server -->
+          <canvas id="clientCanvas" style="display: none;"></canvas>
+          <!-- Fallback server image for simulation mode -->
+          <img id="serverVideo" src="{{ url_for('video_feed') }}" alt="Video Feed" />
         </div>
 
         <div class="instructions">
@@ -261,35 +265,113 @@
     <script>
       let faceDetected = false;
       let checkInterval;
+      
+      // Client-side camera handling
+      const video = document.getElementById('clientVideo');
+      const canvas = document.getElementById('clientCanvas');
+      const serverVideo = document.getElementById('serverVideo');
+      let stream = null;
+      let frameSendingInterval = null;
 
-      function checkFaceStatus() {
-        fetch("/api/face_status")
-          .then((response) => response.json())
-          .then((data) => {
-            faceDetected = data.face_detected;
+      async function startCamera() {
+        try {
+          // Request camera access
+          stream = await navigator.mediaDevices.getUserMedia({ 
+            video: { 
+              width: { ideal: 640 },
+              height: { ideal: 480 },
+              facingMode: "user"
+            } 
+          });
+          
+          // Show local video stream immediately (Zero Latency for user)
+          video.srcObject = stream;
+          video.style.display = 'block';
+          serverVideo.style.display = 'none';
+          
+          // Start sending frames for detection in background
+          // Optimized: Send every 500ms instead of continuous stream
+          frameSendingInterval = setInterval(sendFrameForDetection, 500);
+          
+        } catch (err) {
+          console.error("Error accessing camera:", err);
+          alert("No se pudo acceder a la cámara. Por favor, asegúrese de dar permisos.");
+          // Fallback to server video if client camera fails
+          video.style.display = 'none';
+          serverVideo.style.display = 'block';
+        }
+      }
 
-            const indicator = document.getElementById("statusIndicator");
-            const statusText = document.getElementById("statusText");
-            const statusMessage = document.getElementById("statusMessage");
-            const continueBtn = document.getElementById("continueBtn");
-
-            if (faceDetected) {
-              indicator.classList.add("detected");
-              statusText.textContent = "Rostro Detectado";
-              statusMessage.textContent = "✓ ¡Rostro detectado correctamente!";
-              statusMessage.style.color = "#2ed573";
-              continueBtn.disabled = false;
-            } else {
-              indicator.classList.remove("detected");
-              statusText.textContent = "No detectado";
-              statusMessage.textContent = "Esperando detección de rostro...";
-              statusMessage.style.color = "white";
-              continueBtn.disabled = true;
+      function sendFrameForDetection() {
+        if (!stream || video.style.display === 'none') return;
+        
+        const context = canvas.getContext('2d');
+        // Reduce resolution for faster transmission (320x240 is enough for face detection)
+        canvas.width = 320;
+        canvas.height = 240;
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        
+        canvas.toBlob(blob => {
+          if (!blob) return;
+          
+          const formData = new FormData();
+          formData.append('frame', blob, 'frame.jpg');
+          
+          // Send to server without blocking UI
+          fetch('/api/process_frame', {
+            method: 'POST',
+            body: formData
+          })
+          .then(response => response.json())
+          .then(data => {
+            if (data.face_detected) {
+               // Update UI immediately if face found
+               faceDetected = true;
+               updateStatus(true);
             }
           })
-          .catch((error) => {
-            console.error("Error checking face status:", error);
-          });
+          .catch(err => console.log("Frame skip")); // Ignore network errors to keep smooth
+        }, 'image/jpeg', 0.6); // Low quality JPEG for speed
+      }
+
+      // Start camera on load
+      startCamera();
+
+      function updateStatus(detected) {
+          const indicator = document.getElementById("statusIndicator");
+          const statusText = document.getElementById("statusText");
+          const statusMessage = document.getElementById("statusMessage");
+          const continueBtn = document.getElementById("continueBtn");
+
+          if (detected) {
+            indicator.classList.add("detected");
+            statusText.textContent = "Rostro Detectado";
+            statusMessage.textContent = "✓ ¡Rostro detectado correctamente!";
+            statusMessage.style.color = "#2ed573";
+            continueBtn.disabled = false;
+          } else {
+            indicator.classList.remove("detected");
+            statusText.textContent = "No detectado";
+            statusMessage.textContent = "Esperando detección de rostro...";
+            statusMessage.style.color = "white";
+            continueBtn.disabled = true;
+          }
+      }
+
+      function checkFaceStatus() {
+        // Only check status from server if we are NOT using client camera
+        // If using client camera, we update status directly from the response of sendFrameForDetection
+        if (video.style.display === 'none') {
+             fetch("/api/face_status")
+              .then((response) => response.json())
+              .then((data) => {
+                faceDetected = data.face_detected;
+                updateStatus(faceDetected);
+              })
+              .catch((error) => {
+                console.error("Error checking face status:", error);
+              });
+        }
       }
 
       function continueToNext() {
@@ -353,6 +435,10 @@
       // Limpiar intervalo al salir de la página
       window.addEventListener("beforeunload", () => {
         clearInterval(checkInterval);
+        if (frameSendingInterval) clearInterval(frameSendingInterval);
+        if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+        }
       });
     </script>
   </body>
