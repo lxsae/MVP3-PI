@@ -549,14 +549,6 @@ current_frame = camera.create_test_frame()
 face_detected = False
 frame_lock = threading.Lock()
 
-# Iniciar thread de procesamiento automáticamente al importar
-# Esto asegura que funcione con Gunicorn y otros servidores WSGI
-if not os.environ.get('WERKZEUG_RUN_MAIN') or os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
-    # Evitar iniciar thread doble en modo debug de Flask
-    processing_thread = threading.Thread(target=process_frames, daemon=True)
-    processing_thread.start()
-    print("✅ Thread de procesamiento de video iniciado")
-
 def process_frames():
     """Procesamiento de frames en segundo plano"""
     global current_frame, face_detected
@@ -598,6 +590,14 @@ def process_frames():
         except Exception as e:
             print(f"Error en procesamiento: {e}")
             time.sleep(1)
+
+# Iniciar thread de procesamiento automáticamente al importar
+# Esto asegura que funcione con Gunicorn y otros servidores WSGI
+if not os.environ.get('WERKZEUG_RUN_MAIN') or os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
+    # Evitar iniciar thread doble en modo debug de Flask
+    processing_thread = threading.Thread(target=process_frames, daemon=True)
+    processing_thread.start()
+    print("✅ Thread de procesamiento de video iniciado")
 
 def generate_frames():
     """Generar stream de video"""
