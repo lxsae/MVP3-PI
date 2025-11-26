@@ -208,7 +208,8 @@
 
       <div class="content">
         <div class="video-container">
-          <img src="{{ url_for('video_feed') }}" alt="Video Feed" />
+          <video id="webcam" autoplay playsinline style="width: 100%; border-radius: 10px;"></video>
+          <canvas id="canvas" style="display: none;"></canvas>
         </div>
 
         <div class="instructions">
@@ -260,80 +261,71 @@
     <script>
       let faceDetected = false;
       let checkInterval;
+      const video = document.getElementById('webcam');
+      const canvas = document.getElementById('canvas');
+      const context = canvas.getContext('2d');
 
-      function checkFaceStatus() {
-        fetch("/api/face_status")
-          .then((response) => response.json())
-          .then((data) => {
-            faceDetected = data.face_detected;
+      // Inicializar cámara web en el cliente
+      async function initCamera() {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+          video.srcObject = stream;
+        } catch (err) {
+          console.error("Error accediendo a la cámara:", err);
+          alert("No se pudo acceder a la cámara. Por favor, permita el acceso.");
+        }
+      }
 
-            const indicator = document.getElementById("statusIndicator");
-            const statusText = document.getElementById("statusText");
-            const statusMessage = document.getElementById("statusMessage");
-            const continueBtn = document.getElementById("continueBtn");
+      // Enviar frames al servidor para detección
+      function sendFrame() {
+        if (!video.videoWidth) return;
 
-            if (faceDetected) {
-              indicator.classList.add("detected");
-              statusText.textContent = "Rostro Detectado";
-              statusMessage.textContent = "✓ ¡Rostro detectado correctamente!";
-              statusMessage.style.color = "#2ed573";
-              continueBtn.disabled = false;
-            } else {
-              indicator.classList.remove("detected");
-              statusText.textContent = "No detectado";
-              statusMessage.textContent = "Esperando detección de rostro...";
-              statusMessage.style.color = "white";
-              continueBtn.disabled = true;
-            }
-          })
-          .catch((error) => {
-            console.error("Error checking face status:", error);
-          });
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        
+        const dataURL = canvas.toDataURL('image/jpeg', 0.7);
+        
+        fetch('/api/process_frame', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image: dataURL })
+        })
+        .then(response => response.json())
+        .then(data => {
+            updateStatus(data.face_detected);
+        })
+        .catch(err => console.error("Error enviando frame:", err));
+      }
+
+      function updateStatus(detected) {
+        faceDetected = detected;
+        const indicator = document.getElementById("statusIndicator");
+        const statusText = document.getElementById("statusText");
+        const statusMessage = document.getElementById("statusMessage");
+        const continueBtn = document.getElementById("continueBtn");
+
+        if (faceDetected) {
+          indicator.classList.add("detected");
+          statusText.textContent = "Rostro Detectado";
+          statusMessage.textContent = "✓ ¡Rostro detectado correctamente!";
+          statusMessage.style.color = "#2ed573";
+          continueBtn.disabled = false;
+        } else {
+          indicator.classList.remove("detected");
+          statusText.textContent = "No detectado";
+          statusMessage.textContent = "Esperando detección de rostro...";
+          statusMessage.style.color = "white";
+          continueBtn.disabled = true;
+        }
       }
 
       function continueToNext() {
         if (faceDetected) {
-          // Disable button to prevent double-clicks
           const continueBtn = document.getElementById("continueBtn");
           continueBtn.disabled = true;
           continueBtn.textContent = "Procesando...";
-
-          const needsProfileCompletion =
-            document.body.dataset.needsProfileCompletion === "true";
-
-          if (needsProfileCompletion) {
-            window.location.href = "/formulario";
-          } else {
-            // Direct check-in for users with complete profiles
-            fetch("/api/register", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({}),
-            })
-              .then((response) => response.json())
-              .then((result) => {
-                if (result.success) {
-                  if (result.redirect_url) {
-                    window.location.href = result.redirect_url; // Go to evidence
-                  } else {
-                    window.location.href = "/completado"; // Go to completion
-                  }
-                } else {
-                  alert("Error: " + result.error);
-                  // Re-enable button on error
-                  continueBtn.disabled = false;
-                  continueBtn.textContent = "Continuar →";
-                }
-              })
-              .catch((error) => {
-                alert("Error de conexión: " + error.message);
-                // Re-enable button on error
-                continueBtn.disabled = false;
-                continueBtn.textContent = "Continuar →";
-              });
-          }
+          window.location.href = "/formulario";
         } else {
           alert("Por favor, espere a que se detecte su rostro.");
         }
@@ -343,13 +335,10 @@
         window.location.href = "/registro";
       }
 
-      // Verificar estado cada segundo
-      checkInterval = setInterval(checkFaceStatus, 1000);
+      // Iniciar todo
+      initCamera();
+      checkInterval = setInterval(sendFrame, 1000); // Enviar frame cada segundo
 
-      // Verificar inmediatamente al cargar
-      checkFaceStatus();
-
-      // Limpiar intervalo al salir de la página
       window.addEventListener("beforeunload", () => {
         clearInterval(checkInterval);
       });
